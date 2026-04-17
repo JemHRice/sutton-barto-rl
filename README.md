@@ -1,5 +1,7 @@
 # RL Foundations: Bandits, Dynamic Programming & Monte Carlo
 
+## [🚀 Try the Live App](https://sutton-barto-rl-eajnsbsvvdoygeyktohrju.streamlit.app/)
+
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sutton-barto-rl-eajnsbsvvdoygeyktohrju.streamlit.app/)
 
 An interactive, beginner-friendly Streamlit app for learning the core ideas in reinforcement learning — from multi-armed bandits through dynamic programming to Monte Carlo methods — through live simulations and plain-English explanations.
