@@ -2,28 +2,10 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
+from utils.random_walk import RandomWalkEnv, compute_true_values
 
-# ── True values & MC simulation ────────────────────────────────────────────
 
-@st.cache_data
-def compute_true_values(gamma: float) -> np.ndarray:
-    """
-    Iterative policy evaluation for the 5-state random walk.
-    States: 0 (left terminal) … 6 (right terminal).
-    Returns V[1:6] — true values for non-terminal states.
-    """
-    V = np.zeros(7)
-    for _ in range(100_000):
-        delta = 0.0
-        for s in range(1, 6):
-            r_right = 1.0 if s == 5 else 0.0
-            v_new = 0.5 * (gamma * V[s - 1]) + 0.5 * (r_right + gamma * V[s + 1])
-            delta = max(delta, abs(V[s] - v_new))
-            V[s] = v_new
-        if delta < 1e-12:
-            break
-    return V[1:6].copy()
-
+# ── MC simulation ──────────────────────────────────────────────────────────
 
 @st.cache_data
 def run_mc_prediction(n_episodes: int, gamma: float, seed: int) -> dict:
@@ -32,7 +14,7 @@ def run_mc_prediction(n_episodes: int, gamma: float, seed: int) -> dict:
     Always starts from the centre (state 3).
     Returns snapshots at log-spaced episode checkpoints + final RMS errors.
     """
-    rng = np.random.default_rng(seed)
+    env    = RandomWalkEnv(seed=seed)
     V_true = compute_true_values(gamma)
 
     # Build log-spaced checkpoints
@@ -50,21 +32,15 @@ def run_mc_prediction(n_episodes: int, gamma: float, seed: int) -> dict:
 
     for ep in range(1, n_episodes + 1):
         # ── Generate episode ──────────────────────────────────────────────
-        state   = 3
+        state   = env.reset()
         episode = []          # list of (state, reward_received_after)
 
         while True:
-            move       = 1 if rng.random() < 0.5 else -1
-            next_state = state + move
-            if next_state == 6:
-                episode.append((state, 1.0))
+            next_state, reward, done = env.step()
+            episode.append((state, reward))
+            if done:
                 break
-            elif next_state == 0:
-                episode.append((state, 0.0))
-                break
-            else:
-                episode.append((state, 0.0))
-                state = next_state
+            state = next_state
 
         # ── First-visit MC update ─────────────────────────────────────────
         G            = 0.0

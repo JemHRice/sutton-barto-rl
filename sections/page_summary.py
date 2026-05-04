@@ -168,6 +168,63 @@ the exact probabilities of the game.
             },
         ],
     },
+    {
+        "label": "Section 4 — Temporal Difference Learning",
+        "concepts": [
+            {
+                "title": "TD(0) Prediction",
+                "body": """
+Instead of waiting until the end of an episode to calculate the actual return, I update my
+estimate of how good each state is after every single step, using the reward I just received
+plus my current estimate of how good the next state is. This means I am updating one estimate
+using another estimate, which introduces a small amount of bias but dramatically reduces the
+amount of noise in each update compared to waiting for the full episode return. Because updates
+happen immediately at each step rather than at episode end, this approach also works in
+continuing tasks that never terminate.
+""",
+            },
+            {
+                "title": "TD(0) vs Monte Carlo",
+                "body": """
+Monte Carlo methods wait until the episode ends and then use the actual observed return to
+update state values, which means each update is an unbiased sample of the true value but is
+also noisy because a single episode is just one random outcome. TD(0) updates state values
+immediately after each step using the current reward plus the estimated value of the next
+state, which introduces some bias from the bootstrapped estimate but produces much lower
+variance because each update depends on only one step rather than an entire sequence of
+random events. In practice, the lower variance of TD often allows it to converge faster than
+Monte Carlo, especially in problems with long episodes.
+""",
+            },
+            {
+                "title": "Windy GridWorld — SARSA vs Q-Learning",
+                "body": """
+In the Windy GridWorld, some columns push the agent upward regardless of the action chosen,
+which means the agent must learn to account for this wind when planning a path to the goal.
+SARSA updates its action values using the action that was actually taken in the next state,
+which means it learns the value of its own behaviour including any random exploratory actions,
+making it more cautious in risky parts of the grid during training. Q-Learning always updates
+using the best possible action in the next state regardless of what was actually taken, so it
+learns the value of the optimal policy even while exploring, which typically finds a more
+direct path but may take more risk during training when exploration sends it into the wind.
+""",
+            },
+            {
+                "title": "Cliff Walking — Why SARSA and Q-Learning Take Different Paths",
+                "body": """
+In the cliff walking problem, there is a short path along the edge of a cliff that leads
+quickly to the goal but risks a large negative reward if an exploratory action steps off the
+edge, and a longer but safer path that stays away from the cliff. Q-Learning learns the
+value of always taking the optimal action, so it converges to the short path along the cliff
+edge because in theory that is the best route. SARSA learns the value of its actual behaviour
+including exploration, so it recognises that occasionally taking a random action near the
+cliff is dangerous and prefers the longer safe path instead. This difference between learning
+the optimal policy versus the current behaviour policy means SARSA and Q-Learning can
+converge to genuinely different solutions in the same environment.
+""",
+            },
+        ],
+    },
 ]
 
 

@@ -1,10 +1,10 @@
-# RL Foundations: Bandits, Dynamic Programming & Monte Carlo
+# RL Foundations: Bandits, Dynamic Programming, Monte Carlo & Temporal Difference
 
 ## [🚀 Try the Live App](https://sutton-barto-rl-eajnsbsvvdoygeyktohrju.streamlit.app/)
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sutton-barto-rl-eajnsbsvvdoygeyktohrju.streamlit.app/)
 
-An interactive, beginner-friendly Streamlit app for learning the core ideas in reinforcement learning — from multi-armed bandits through dynamic programming to Monte Carlo methods — through live simulations and plain-English explanations.
+An interactive, beginner-friendly Streamlit app for learning the core ideas in reinforcement learning — from multi-armed bandits through dynamic programming, Monte Carlo methods, and temporal difference learning — through live simulations and plain-English explanations.
 
 Built on Sutton & Barto's *Reinforcement Learning: An Introduction* (2nd ed.). All algorithms are implemented from scratch using NumPy only — no RL libraries.
 
@@ -79,6 +79,16 @@ MC methods learn from experience — no model required. They run complete episod
 | 8 | **MC Control** | Learn the optimal Q-function with ε-greedy on-policy MC; environment is Blackjack, implemented from scratch |
 | 9 | **Solving Blackjack** | Run 500k–1M episodes to converge on the optimal Blackjack policy; visualise learned strategy heatmaps and play interactively against the trained agent |
 
+### Section 4 — Temporal Difference Learning
+
+TD methods combine the model-free sampling of Monte Carlo with the online bootstrapping of Dynamic Programming. They update after every step — no complete episode required — making them applicable to continuing tasks and much more sample-efficient in practice.
+
+| Page | Topic | Key Idea |
+|------|-------|----------|
+| 10 | **TD(0) Prediction** | Compare TD(0) and first-visit MC on the 5-state Random Walk; plot RMS error convergence and final value estimates for both methods |
+| 11 | **Windy GridWorld** | Apply SARSA and Q-Learning to a 7×10 grid with column wind; compare learned paths side by side; toggle stochastic wind and King's moves |
+| 12 | **Cliff Walking** | Run SARSA, Q-Learning, and Expected SARSA on the same cliff environment; explore Q-value heatmaps at any training snapshot; see why SARSA finds the safe path and Q-Learning finds the risky optimal one |
+
 ### Summary — Key Concepts
 
 A growing reference page of plain-English summaries for every algorithm and concept covered in the app. Updated as new sections are added.
@@ -108,7 +118,8 @@ sutton-barto-rl/
 ├── bugs.md                         # Known bugs and feature requests
 ├── utils/
 │   ├── gridworld.py                # Shared 4×4 GridWorld + cached DP solvers
-│   └── blackjack.py                # Blackjack environment (reset/step API)
+│   ├── blackjack.py                # Blackjack environment (reset/step API)
+│   └── random_walk.py              # 5-state Random Walk env + true value solver
 └── sections/
     ├── page1_epsilon_greedy.py     # ε-Greedy bandit
     ├── page2_ucb.py                # UCB1 bandit
@@ -119,5 +130,8 @@ sutton-barto-rl/
     ├── page7_mc_prediction.py      # First-visit MC prediction (Random Walk)
     ├── page8_mc_control.py         # On-policy MC control (Blackjack)
     ├── page9_blackjack.py          # Solving Blackjack + interactive demo
+    ├── page10_td0_prediction.py    # TD(0) vs MC prediction on Random Walk
+    ├── page11_windy_gridworld.py   # SARSA vs Q-Learning on Windy GridWorld
+    ├── page12_cliff_walking.py     # SARSA / Q-Learning / Expected SARSA on Cliff Walk
     └── page_summary.py             # Summary — Key Concepts (accumulates over time)
 ```

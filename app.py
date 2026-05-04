@@ -49,23 +49,28 @@ PAGES = {
     "7 — MC Prediction": "sections.page7_mc_prediction",
     "8 — MC Control": "sections.page8_mc_control",
     "9 — Solving Blackjack": "sections.page9_blackjack",
+    "10 — TD(0) Prediction": "sections.page10_td0_prediction",
+    "11 — Windy GridWorld": "sections.page11_windy_gridworld",
+    "12 — Cliff Walking": "sections.page12_cliff_walking",
     "📋 Summary — Key Concepts": "sections.page_summary",
 }
 
 PAGE_KEYS = list(PAGES.keys())
 
-SEC1   = PAGE_KEYS[0:3]
-SEC2   = PAGE_KEYS[3:6]
-SEC3   = PAGE_KEYS[6:9]
-SECSUM = [PAGE_KEYS[9]]
+SEC1 = PAGE_KEYS[0:3]
+SEC2 = PAGE_KEYS[3:6]
+SEC3 = PAGE_KEYS[6:9]
+SEC4 = PAGE_KEYS[9:12]
+SECSUM = [PAGE_KEYS[12]]
 
 # ── Session state ──────────────────────────────────────────────────────────
 
 if "selected_page" not in st.session_state:
     st.session_state.selected_page = SEC1[0]
-    st.session_state.r1   = SEC1[0]
-    st.session_state.r2   = None
-    st.session_state.r3   = None
+    st.session_state.r1 = SEC1[0]
+    st.session_state.r2 = None
+    st.session_state.r3 = None
+    st.session_state.r4 = None
     st.session_state.rsum = None
 
 
@@ -80,6 +85,7 @@ def _pick(key: str, others: list):
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
 
+
 def _section_label(text: str):
     st.sidebar.markdown(
         f'<div class="sidebar-section">{text}</div>', unsafe_allow_html=True
@@ -88,24 +94,58 @@ def _section_label(text: str):
 
 with st.sidebar:
     st.title("RL Foundations")
-    st.caption("Bandits · DP · Monte Carlo")
+    st.caption("Bandits · DP · Monte Carlo · TD")
     st.divider()
 
     _section_label("Section 1 · Bandit Algorithms")
-    st.radio("s1", SEC1, label_visibility="collapsed", key="r1",
-             on_change=_pick, args=("r1", ["r2", "r3", "rsum"]))
+    st.radio(
+        "s1",
+        SEC1,
+        label_visibility="collapsed",
+        key="r1",
+        on_change=_pick,
+        args=("r1", ["r2", "r3", "r4", "rsum"]),
+    )
 
     _section_label("Section 2 · Dynamic Programming")
-    st.radio("s2", SEC2, label_visibility="collapsed", key="r2",
-             on_change=_pick, args=("r2", ["r1", "r3", "rsum"]))
+    st.radio(
+        "s2",
+        SEC2,
+        label_visibility="collapsed",
+        key="r2",
+        on_change=_pick,
+        args=("r2", ["r1", "r3", "r4", "rsum"]),
+    )
 
     _section_label("Section 3 · Monte Carlo Methods")
-    st.radio("s3", SEC3, label_visibility="collapsed", key="r3",
-             on_change=_pick, args=("r3", ["r1", "r2", "rsum"]))
+    st.radio(
+        "s3",
+        SEC3,
+        label_visibility="collapsed",
+        key="r3",
+        on_change=_pick,
+        args=("r3", ["r1", "r2", "r4", "rsum"]),
+    )
+
+    _section_label("Section 4 · Temporal Difference Learning")
+    st.radio(
+        "s4",
+        SEC4,
+        label_visibility="collapsed",
+        key="r4",
+        on_change=_pick,
+        args=("r4", ["r1", "r2", "r3", "rsum"]),
+    )
 
     st.divider()
-    st.radio("s4", SECSUM, label_visibility="collapsed", key="rsum",
-             on_change=_pick, args=("rsum", ["r1", "r2", "r3"]))
+    st.radio(
+        "s5",
+        SECSUM,
+        label_visibility="collapsed",
+        key="rsum",
+        on_change=_pick,
+        args=("rsum", ["r1", "r2", "r3", "r4"]),
+    )
 
     st.divider()
     st.markdown(
