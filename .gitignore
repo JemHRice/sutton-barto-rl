@@ -12,3 +12,9 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Private / local only
+.claude/
+bugs.md
+blog_post.md
+blog_images/
