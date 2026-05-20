@@ -31,9 +31,7 @@ def run_td0_vs_mc(n_episodes: int, alpha: float, gamma: float, seed: int) -> dic
     snaps_td: dict[int, np.ndarray] = {}
 
     # MC state
-    V_mc          = np.zeros(7)
-    returns_sum   = np.zeros(7)
-    returns_count = np.zeros(7, dtype=int)
+    V_mc  = np.zeros(7)
     rms_mc: list[float]             = []
     snaps_mc: dict[int, np.ndarray] = {}
 
@@ -68,9 +66,7 @@ def run_td0_vs_mc(n_episodes: int, alpha: float, gamma: float, seed: int) -> dic
             first_visit[sv] = G
 
         for sv, Gv in first_visit.items():
-            returns_sum[sv]   += Gv
-            returns_count[sv] += 1
-            V_mc[sv]           = returns_sum[sv] / returns_count[sv]
+            V_mc[sv] += alpha * (Gv - V_mc[sv])
 
         # ── Snapshots ─────────────────────────────────────────────────────────
         if ep in ck_set:
@@ -279,8 +275,8 @@ estimate how good each state is under that policy.
     with col1:
         n_episodes = st.slider("Episodes", 100, 5000, 1000, 100)
     with col2:
-        alpha = st.slider("α (TD learning rate)", 0.01, 0.5, 0.1, 0.01,
-                          help="Only TD(0) uses α; MC averages returns regardless of α.")
+        alpha = st.slider("α (learning rate)", 0.01, 0.5, 0.1, 0.01,
+                          help="Applied to both TD(0) and MC — matches Sutton & Barto Figure 6.2.")
     with col3:
         gamma = st.slider("γ (discount)", 0.5, 1.0, 1.0, 0.05)
     with col4:

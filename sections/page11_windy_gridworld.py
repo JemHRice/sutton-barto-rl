@@ -122,22 +122,28 @@ def run_windy_comparison(
     Q_s, sarsa_lengths = _sarsa(seed)
     Q_q, ql_lengths    = _qlearning(seed + 1)
 
-    # Extract greedy paths with fixed seed for reproducibility
-    def _greedy_path(Q, stoch, kings):
-        env  = WindyGridWorldEnv(stoch, kings, seed=99)
-        s    = env.reset()
-        path = [env.state_to_rc(s)]
+    # Extract greedy paths using deterministic wind so the visualisation
+    # shows the learned policy cleanly, not one stochastic sample.
+    # Cycle detection prevents 800-step loops from rendering as a dense blob.
+    def _greedy_path(Q, kings):
+        env     = WindyGridWorldEnv(stochastic_wind=False, kings_moves=kings, seed=99)
+        s       = env.reset()
+        path    = [env.state_to_rc(s)]
+        visited = {s}
         for _ in range(800):
-            a       = int(np.argmax(Q[s]))
+            a           = int(np.argmax(Q[s]))
             ns, _, done = env.step(a)
-            s       = ns
+            s           = ns
             path.append(env.state_to_rc(s))
             if done:
                 break
+            if s in visited:
+                break  # policy is cycling — stop here
+            visited.add(s)
         return path
 
-    sarsa_path = _greedy_path(Q_s, stochastic_wind, kings_moves)
-    ql_path    = _greedy_path(Q_q, stochastic_wind, kings_moves)
+    sarsa_path = _greedy_path(Q_s, kings_moves)
+    ql_path    = _greedy_path(Q_q, kings_moves)
 
     return {
         "sarsa_lengths": sarsa_lengths,
@@ -219,11 +225,17 @@ def _make_steps_fig(sarsa: list, ql: list) -> go.Figure:
         arr = np.array(data, dtype=float)
         return np.convolve(arr, np.ones(window) / window, mode="valid").tolist()
 
+    # Cap y-axis at 95th percentile so early spikes don't compress the chart.
+    y_cap = float(np.percentile(sarsa + ql, 95)) * 1.1
+
     fig = go.Figure()
+    # Raw traces: faint background texture, excluded from legend.
     fig.add_trace(go.Scatter(x=eps, y=sarsa, mode="lines", name="SARSA (raw)",
-                             line=dict(color="#636EFA", width=1), opacity=0.25))
-    fig.add_trace(go.Scatter(x=eps, y=ql,    mode="lines", name="Q-Learning (raw)",
-                             line=dict(color="#EF553B", width=1), opacity=0.25))
+                             line=dict(color="#636EFA", width=0.75),
+                             opacity=0.08, showlegend=False))
+    fig.add_trace(go.Scatter(x=eps, y=ql, mode="lines", name="Q-Learning (raw)",
+                             line=dict(color="#EF553B", width=0.75),
+                             opacity=0.08, showlegend=False))
 
     offset = window - 1
     if n >= window:
@@ -238,6 +250,7 @@ def _make_steps_fig(sarsa: list, ql: list) -> go.Figure:
     fig.update_layout(
         title="Steps per Episode over Training",
         xaxis_title="Episode", yaxis_title="Steps to Goal",
+        yaxis=dict(range=[0, y_cap]),
         template="plotly_white", height=380,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
@@ -365,6 +378,19 @@ the optimal policy faster but can be noisier during learning.
 
         st.header("Results")
 
+        goal = WindyGridWorldEnv.GOAL_RC
+        sarsa_reached = result["sarsa_path"] and result["sarsa_path"][-1] == goal
+        ql_reached    = result["ql_path"]    and result["ql_path"][-1]    == goal
+        if not sarsa_reached or not ql_reached:
+            who = []
+            if not sarsa_reached: who.append("SARSA")
+            if not ql_reached:    who.append("Q-Learning")
+            st.warning(
+                f"**{'and '.join(who)} {'has' if len(who) == 1 else 'have'} not converged yet** — "
+                f"the greedy path cycles without reaching the goal. "
+                f"Try increasing episodes or the learning rate α."
+            )
+
         # Grid with paths
         fig_grid = _make_grid_fig(result["sarsa_path"], result["ql_path"], result["wind"])
         st.plotly_chart(fig_grid, use_container_width=True)
@@ -406,7 +432,8 @@ Both algorithms learn to navigate the windy columns, but they reflect different 
             )
         if stoch:
             st.warning(
-                "With stochastic wind the greedy path shown is one sample — it may differ "
-                "slightly between runs. The Q-values encode the *expected* best policy over "
-                "the wind distribution, so the greedy policy is optimal on average."
+                "Training used stochastic wind, but the greedy path above is rendered with "
+                "deterministic wind so you can read the learned policy cleanly. "
+                "The Q-values encode the *expected* best action over the wind distribution — "
+                "the path shows how that policy navigates under average-case conditions."
             )

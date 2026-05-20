@@ -225,6 +225,98 @@ converge to genuinely different solutions in the same environment.
             },
         ],
     },
+    {
+        "label": "Section 5 — n-step Bootstrapping",
+        "concepts": [
+            {
+                "title": "n-step TD Prediction",
+                "body": """
+Instead of waiting for the full episode return like Monte Carlo or bootstrapping from just one
+step ahead like TD(0), n-step TD collects real rewards for n steps into the future and then
+bootstraps from the estimated value of the state it ends up in. This creates a spectrum between
+TD(0) and Monte Carlo controlled by the single parameter n. Small n gives low variance but high
+bias because early value estimates are rough; large n gives low bias but high variance because
+more random steps are included in the return. The best n depends on the task, but intermediate
+values of roughly two to eight often learn fastest by balancing the two error sources.
+""",
+            },
+            {
+                "title": "n-step SARSA",
+                "body": """
+n-step SARSA extends the n-step bootstrapping idea from prediction to control by replacing
+state values with action values and applying ε-greedy action selection. After taking n real
+steps the algorithm computes the n-step return using the real rewards collected and the current
+Q value of the state-action pair it landed on, then updates the Q value of the original
+state-action pair from which the n steps began. This allows reward information to propagate
+n steps backward in a single update, which is particularly helpful in tasks with delayed
+rewards where pure one-step methods require many episodes to propagate credit back to the
+decisions that actually caused a good outcome.
+""",
+            },
+            {
+                "title": "Tree Backup vs Importance Sampling for Off-Policy n-step",
+                "body": """
+When the policy being evaluated differs from the policy used to collect data, n-step updates
+need a correction. Importance sampling multiplies the return by the ratio of target policy
+probability to behaviour policy probability for each step in the n-step window. When the two
+policies differ substantially, this ratio is a product of many terms that can become very large
+or very small, causing high variance that destabilises learning especially for large n.
+Tree backup avoids importance sampling entirely by replacing the continuation of the trajectory
+with the expected value under the target policy at each intermediate step, effectively backing
+up a weighted tree of possible continuations rather than a single observed path. This produces
+an off-policy update without any ratio products, at the cost of slightly more computation per
+update.
+""",
+            },
+        ],
+    },
+    {
+        "label": "Section 6 — Planning and Learning",
+        "concepts": [
+            {
+                "title": "Dyna-Q and Model-Based RL",
+                "body": """
+Dyna-Q combines direct model-free reinforcement learning with planning using a learned model
+of the environment. After each real interaction the agent updates Q values directly from the
+observed transition, updates its internal model to record that the observed state and action
+led to the observed reward and next state, then runs n additional planning steps by sampling
+previously observed state-action pairs from the model and performing Q-learning updates on
+those simulated transitions. Because simulated experience is cheap to generate once the model
+is built, each real environment step effectively produces n plus one Q-learning updates.
+With enough planning steps an agent can learn a good policy after many fewer real interactions
+than a purely model-free algorithm, which matters greatly when real experience is expensive.
+""",
+            },
+            {
+                "title": "Dyna-Q+ and Adapting to Change",
+                "body": """
+Plain Dyna-Q assumes the environment is stationary and its model remains accurate over time.
+When the environment changes, the stored model becomes incorrect and Dyna-Q may continue
+planning with stale transitions, failing to discover new paths or adapting slowly to blocked
+paths. Dyna-Q+ addresses this by adding an exploration bonus to the reward of any state-action
+pair that has not been visited recently, scaled by the square root of the time since it was
+last tried. This bonus encourages the agent to revisit parts of the environment it has not
+checked in a while, allowing it to detect environmental changes much faster than random
+exploration would manage on its own.
+""",
+            },
+            {
+                "title": "Prioritised Sweeping",
+                "body": """
+Dyna-Q selects which state-action pairs to update during planning uniformly at random, which
+wastes computation on pairs whose Q values are already accurate. Prioritised sweeping instead
+maintains a priority queue ordered by the magnitude of the TD error for each state-action pair.
+After each real or simulated update, any state-action pairs whose predecessors just had their
+Q values changed are recomputed and added to the queue if their TD errors exceed a threshold.
+The pair with the highest priority is always updated next, so computation focuses on the parts
+of the state space where value estimates are most wrong. When reward is first discovered,
+prioritized sweeping immediately propagates this information backward through all predecessor
+states in order of importance, reaching the goal state in far fewer real environment steps
+than random Dyna-Q planning.
+""",
+            },
+        ],
+    },
 ]
 
 

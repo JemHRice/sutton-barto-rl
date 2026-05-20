@@ -1,6 +1,6 @@
 """
-RL Foundations: Bandits, Dynamic Programming & Monte Carlo Methods
-A beginner-friendly Streamlit educational app.
+RL Foundations: Interactive Sutton & Barto companion
+Two-mode app: Tabular RL (Ch. 1-8) and Deep RL (Ch. 9-13)
 """
 
 import importlib
@@ -13,7 +13,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="RL Foundations",
-    page_icon="🎰",
+    page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -39,122 +39,362 @@ st.markdown(
 
 # ── Page registry ──────────────────────────────────────────────────────────
 
-PAGES = {
-    "1 — ε-Greedy Bandit": "sections.page1_epsilon_greedy",
-    "2 — UCB": "sections.page2_ucb",
-    "3 — Thompson Sampling": "sections.page3_thompson",
-    "4 — Policy Evaluation": "sections.page4_policy_eval",
-    "5 — Policy Iteration": "sections.page5_policy_iteration",
-    "6 — Value Iteration": "sections.page6_value_iteration",
-    "7 — MC Prediction": "sections.page7_mc_prediction",
-    "8 — MC Control": "sections.page8_mc_control",
-    "9 — Solving Blackjack": "sections.page9_blackjack",
-    "10 — TD(0) Prediction": "sections.page10_td0_prediction",
-    "11 — Windy GridWorld": "sections.page11_windy_gridworld",
-    "12 — Cliff Walking": "sections.page12_cliff_walking",
-    "📋 Summary — Key Concepts": "sections.page_summary",
+TABULAR_SECTIONS = [
+    {
+        "label": "Section 1 · Bandit Algorithms",
+        "key": "tab_s1",
+        "pages": [
+            ("1 — ε-Greedy Bandit", "sections.page1_epsilon_greedy"),
+            ("2 — UCB", "sections.page2_ucb"),
+            ("3 — Thompson Sampling", "sections.page3_thompson"),
+        ],
+    },
+    {
+        "label": "Section 2 · Dynamic Programming",
+        "key": "tab_s2",
+        "pages": [
+            ("4 — Policy Evaluation", "sections.page4_policy_eval"),
+            ("5 — Policy Iteration", "sections.page5_policy_iteration"),
+            ("6 — Value Iteration", "sections.page6_value_iteration"),
+        ],
+    },
+    {
+        "label": "Section 3 · Monte Carlo Methods",
+        "key": "tab_s3",
+        "pages": [
+            ("7 — MC Prediction", "sections.page7_mc_prediction"),
+            ("8 — MC Control", "sections.page8_mc_control"),
+            ("9 — Solving Blackjack", "sections.page9_blackjack"),
+        ],
+    },
+    {
+        "label": "Section 4 · Temporal Difference",
+        "key": "tab_s4",
+        "pages": [
+            ("10 — TD(0) Prediction", "sections.page10_td0_prediction"),
+            ("11 — Windy GridWorld", "sections.page11_windy_gridworld"),
+            ("12 — Cliff Walking", "sections.page12_cliff_walking"),
+        ],
+    },
+    {
+        "label": "Section 5 · n-step Bootstrapping",
+        "key": "tab_s5",
+        "pages": [
+            ("13 — n-step TD Prediction", "sections.page13_nstep_td"),
+            ("14 — n-step SARSA", "sections.page14_nstep_sarsa"),
+            ("15 — Tree Backup vs IS", "sections.page15_tree_backup"),
+        ],
+    },
+    {
+        "label": "Section 6 · Planning and Learning",
+        "key": "tab_s6",
+        "pages": [
+            ("16 — Dyna-Q", "sections.page16_dynaq"),
+            ("17 — Dyna-Q+ Changing Maze", "sections.page17_dynaq_plus"),
+            ("18 — Prioritised Sweeping", "sections.page18_prioritized"),
+        ],
+    },
+]
+
+TABULAR_SUMMARY = ("📋 Summary — Key Concepts", "sections.page_summary")
+
+DEEP_SECTIONS = [
+    {
+        "label": "Bridge · Neural Networks",
+        "key": "deep_bridge",
+        "pages": [
+            ("Bridge A — Value Function Approx.", "sections.bridge_a_value_approx"),
+            ("Bridge B — Semi-Gradient Methods", "sections.bridge_b_semi_gradient"),
+        ],
+    },
+    {
+        "label": "Section 7 · FA: Prediction",
+        "key": "deep_s7",
+        "pages": [
+            ("19 — Gradient MC vs Semi-grad TD", "coming_soon"),
+            ("20 — Feature Basis Explorer", "coming_soon"),
+            ("21 — Neural Net Value Approx.", "coming_soon"),
+        ],
+    },
+    {
+        "label": "Section 8 · FA: Control",
+        "key": "deep_s8",
+        "pages": [
+            ("22 — Semi-gradient SARSA", "coming_soon"),
+            ("23 — Mountain Car Solver", "coming_soon"),
+            ("24 — Average vs Discounted Reward", "coming_soon"),
+        ],
+    },
+    {
+        "label": "Section 9 · Off-Policy with FA",
+        "key": "deep_s9",
+        "pages": [
+            ("25 — IS with Function Approximation", "coming_soon"),
+            ("26 — Deadly Triad Demo", "coming_soon"),
+            ("27 — Gradient TD Methods", "coming_soon"),
+        ],
+    },
+    {
+        "label": "Section 10 · Eligibility Traces",
+        "key": "deep_s10",
+        "pages": [
+            ("28 — λ-return and TD(λ)", "coming_soon"),
+            ("29 — SARSA(λ)", "coming_soon"),
+            ("30 — Unifying n-step and Traces", "coming_soon"),
+        ],
+    },
+    {
+        "label": "Section 11 · Policy Gradients",
+        "key": "deep_s11",
+        "pages": [
+            ("31 — REINFORCE", "coming_soon"),
+            ("32 — REINFORCE with Baseline", "coming_soon"),
+            ("33 — Actor-Critic", "coming_soon"),
+            ("34 — PPO/TRPO Conceptual", "coming_soon"),
+        ],
+    },
+    {
+        "label": "Section 12 · Applications",
+        "key": "deep_s12",
+        "pages": [
+            ("35 — TD-Gammon & Game Playing", "coming_soon"),
+            ("36 — Real-World RL Case Studies", "coming_soon"),
+            ("37 — AlphaGo Architecture", "coming_soon"),
+        ],
+    },
+    {
+        "label": "Section 13 · Advanced Topics",
+        "key": "deep_s13",
+        "pages": [
+            ("38 — Hierarchical RL & Options", "coming_soon"),
+            ("39 — Meta-RL & Exploration", "coming_soon"),
+            ("40 — Multi-Agent & Frontiers", "coming_soon"),
+        ],
+    },
+]
+
+# ── Flat page lookup ───────────────────────────────────────────────────────
+
+ALL_PAGES: dict[str, str] = {}
+for _sec in TABULAR_SECTIONS:
+    for _name, _mod in _sec["pages"]:
+        ALL_PAGES[_name] = _mod
+ALL_PAGES[TABULAR_SUMMARY[0]] = TABULAR_SUMMARY[1]
+for _sec in DEEP_SECTIONS:
+    for _name, _mod in _sec["pages"]:
+        ALL_PAGES[_name] = _mod
+
+FIRST_TABULAR = TABULAR_SECTIONS[0]["pages"][0][0]
+FIRST_DEEP = DEEP_SECTIONS[0]["pages"][0][0]
+
+_TABULAR_PAGE_NAMES = {p[0] for s in TABULAR_SECTIONS for p in s["pages"]} | {
+    TABULAR_SUMMARY[0]
 }
+_DEEP_PAGE_NAMES = {p[0] for s in DEEP_SECTIONS for p in s["pages"]}
 
-PAGE_KEYS = list(PAGES.keys())
+# ── Session state init ─────────────────────────────────────────────────────
 
-SEC1 = PAGE_KEYS[0:3]
-SEC2 = PAGE_KEYS[3:6]
-SEC3 = PAGE_KEYS[6:9]
-SEC4 = PAGE_KEYS[9:12]
-SECSUM = [PAGE_KEYS[12]]
-
-# ── Session state ──────────────────────────────────────────────────────────
-
+if "mode" not in st.session_state:
+    st.session_state.mode = "home"
 if "selected_page" not in st.session_state:
-    st.session_state.selected_page = SEC1[0]
-    st.session_state.r1 = SEC1[0]
-    st.session_state.r2 = None
-    st.session_state.r3 = None
-    st.session_state.r4 = None
-    st.session_state.rsum = None
+    st.session_state.selected_page = FIRST_TABULAR
+
+for _sec in TABULAR_SECTIONS:
+    if f"r_{_sec['key']}" not in st.session_state:
+        st.session_state[f"r_{_sec['key']}"] = None
+if "r_tab_sum" not in st.session_state:
+    st.session_state.r_tab_sum = None
+for _sec in DEEP_SECTIONS:
+    if f"r_{_sec['key']}" not in st.session_state:
+        st.session_state[f"r_{_sec['key']}"] = None
 
 
-def _pick(key: str, others: list):
-    """On-change callback: update selected_page and clear the other radios."""
-    val = st.session_state[key]
+def _sync_radio() -> None:
+    """Keep radio button state consistent with selected_page."""
+    sp = st.session_state.selected_page
+    for sec in TABULAR_SECTIONS:
+        rk = f"r_{sec['key']}"
+        names = [p[0] for p in sec["pages"]]
+        st.session_state[rk] = sp if sp in names else None
+    st.session_state.r_tab_sum = (
+        TABULAR_SUMMARY[0] if sp == TABULAR_SUMMARY[0] else None
+    )
+    for sec in DEEP_SECTIONS:
+        rk = f"r_{sec['key']}"
+        names = [p[0] for p in sec["pages"]]
+        st.session_state[rk] = sp if sp in names else None
+
+
+_sync_radio()
+
+# ── Callbacks ──────────────────────────────────────────────────────────────
+
+
+def _pick(key: str) -> None:
+    val = st.session_state.get(key)
     if val is not None:
         st.session_state.selected_page = val
-        for k in others:
-            st.session_state[k] = None
 
 
 # ── Sidebar ────────────────────────────────────────────────────────────────
 
 
-def _section_label(text: str):
-    st.sidebar.markdown(
-        f'<div class="sidebar-section">{text}</div>', unsafe_allow_html=True
-    )
+def _section_has_page(sec: dict) -> bool:
+    return st.session_state.selected_page in [p[0] for p in sec["pages"]]
 
 
 with st.sidebar:
     st.title("RL Foundations")
-    st.caption("Bandits · DP · Monte Carlo · TD")
-    st.divider()
 
-    _section_label("Section 1 · Bandit Algorithms")
-    st.radio(
-        "s1",
-        SEC1,
-        label_visibility="collapsed",
-        key="r1",
-        on_change=_pick,
-        args=("r1", ["r2", "r3", "r4", "rsum"]),
-    )
-
-    _section_label("Section 2 · Dynamic Programming")
-    st.radio(
-        "s2",
-        SEC2,
-        label_visibility="collapsed",
-        key="r2",
-        on_change=_pick,
-        args=("r2", ["r1", "r3", "r4", "rsum"]),
-    )
-
-    _section_label("Section 3 · Monte Carlo Methods")
-    st.radio(
-        "s3",
-        SEC3,
-        label_visibility="collapsed",
-        key="r3",
-        on_change=_pick,
-        args=("r3", ["r1", "r2", "r4", "rsum"]),
-    )
-
-    _section_label("Section 4 · Temporal Difference Learning")
-    st.radio(
-        "s4",
-        SEC4,
-        label_visibility="collapsed",
-        key="r4",
-        on_change=_pick,
-        args=("r4", ["r1", "r2", "r3", "rsum"]),
-    )
+    if st.button("⌂ Home", use_container_width=True):
+        st.session_state.mode = "home"
+        st.rerun()
 
     st.divider()
-    st.radio(
-        "s5",
-        SECSUM,
-        label_visibility="collapsed",
-        key="rsum",
-        on_change=_pick,
-        args=("rsum", ["r1", "r2", "r3", "r4"]),
-    )
+
+    if st.session_state.mode == "tabular":
+        st.caption("📊 Tabular RL · Chapters 1–8")
+        st.markdown("")
+
+        for sec in TABULAR_SECTIONS:
+            rk = f"r_{sec['key']}"
+            page_names = [p[0] for p in sec["pages"]]
+            with st.expander(sec["label"], expanded=_section_has_page(sec)):
+                st.radio(
+                    sec["label"],
+                    page_names,
+                    label_visibility="collapsed",
+                    key=rk,
+                    on_change=_pick,
+                    args=(rk,),
+                )
+
+        st.divider()
+        st.radio(
+            "summary",
+            [TABULAR_SUMMARY[0]],
+            label_visibility="collapsed",
+            key="r_tab_sum",
+            on_change=_pick,
+            args=("r_tab_sum",),
+        )
+
+    elif st.session_state.mode == "deep":
+        st.markdown(
+            '<div style="background:#7B2D8B;height:3px;'
+            'border-radius:2px;margin-bottom:0.75rem;"></div>',
+            unsafe_allow_html=True,
+        )
+        st.caption("🧠 Deep RL · Chapters 9–13")
+        st.markdown("")
+
+        for sec in DEEP_SECTIONS:
+            rk = f"r_{sec['key']}"
+            page_names = [p[0] for p in sec["pages"]]
+            with st.expander(sec["label"], expanded=_section_has_page(sec)):
+                st.radio(
+                    sec["label"],
+                    page_names,
+                    label_visibility="collapsed",
+                    key=rk,
+                    on_change=_pick,
+                    args=(rk,),
+                )
 
     st.divider()
     st.markdown(
         "<small>📘 Based on <em>Reinforcement Learning: An Introduction</em>"
         " — Sutton &amp; Barto (2nd ed.)<br><br>"
-        "All algorithms implemented from scratch with NumPy.</small>",
+        "Tabular methods: NumPy only.<br>"
+        "Deep RL: PyTorch + Gymnasium.</small>",
         unsafe_allow_html=True,
     )
 
+# ── Landing page ───────────────────────────────────────────────────────────
+
+
+def show_landing() -> None:
+    st.title("RL Foundations")
+    st.markdown(
+        "#### An interactive companion to *Reinforcement Learning: An Introduction*"
+        " — Sutton & Barto (2nd ed.)"
+    )
+    st.divider()
+
+    col1, col2 = st.columns(2, gap="large")
+
+    with col1:
+        st.subheader("📊 Tabular RL")
+        st.caption("Chapters 1–8 · Pure NumPy · No GPU required")
+        st.markdown("""
+- Multi-Armed Bandits
+- Dynamic Programming
+- Monte Carlo Methods
+- Temporal Difference Learning
+- n-step Bootstrapping
+- Planning & Learning (Dyna-Q)
+            """)
+        if st.button(
+            "Enter Tabular RL →",
+            type="primary",
+            use_container_width=True,
+            key="btn_tabular",
+        ):
+            st.session_state.mode = "tabular"
+            if st.session_state.selected_page not in _TABULAR_PAGE_NAMES:
+                st.session_state.selected_page = FIRST_TABULAR
+            st.rerun()
+
+    with col2:
+        st.subheader("🧠 Deep RL")
+        st.caption("Chapters 9–13 · Requires PyTorch + Gymnasium")
+        st.markdown("""
+- Neural Networks Bridge *(available now)*
+- Function Approximation *(coming soon)*
+- Off-Policy Methods *(coming soon)*
+- Eligibility Traces *(coming soon)*
+- Policy Gradients *(coming soon)*
+- Applications & Advanced Topics *(coming soon)*
+            """)
+        if st.button(
+            "Enter Deep RL →",
+            use_container_width=True,
+            key="btn_deep",
+        ):
+            st.session_state.mode = "deep"
+            if st.session_state.selected_page not in _DEEP_PAGE_NAMES:
+                st.session_state.selected_page = FIRST_DEEP
+            st.rerun()
+
+    st.divider()
+    st.caption(
+        "Start with Tabular RL if you are new to reinforcement learning. "
+        "Deep RL sections build directly on the tabular foundations. "
+        "Install optional dependencies with: `pip install torch gymnasium`"
+    )
+
+
+# ── Coming soon ────────────────────────────────────────────────────────────
+
+
+def show_coming_soon() -> None:
+    st.title(st.session_state.selected_page)
+    st.info(
+        "This section is under construction and will be added in a future update. "
+        "Use the sidebar to navigate to an available page, or return Home to choose a mode."
+    )
+
+
 # ── Route ──────────────────────────────────────────────────────────────────
 
-importlib.import_module(PAGES[st.session_state.selected_page]).show()
+if st.session_state.mode == "home":
+    show_landing()
+else:
+    _module = ALL_PAGES.get(st.session_state.selected_page, "coming_soon")
+    if _module == "coming_soon":
+        show_coming_soon()
+    else:
+        try:
+            importlib.import_module(_module).show()
+        except ModuleNotFoundError:
+            show_coming_soon()
