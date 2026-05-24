@@ -2,7 +2,6 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
-
 # ── Environment: 4×4 GridWorld (same as Page 14) ──────────────────────────
 
 GRID_H, GRID_W = 4, 4
@@ -24,8 +23,14 @@ def _step(state: int, action: int) -> tuple[int, float, bool]:
     return next_state, -1.0, next_state == GOAL
 
 
-def _epsilon_greedy(Q: np.ndarray, state: int, epsilon: float, rng: np.random.Generator) -> int:
-    return int(rng.integers(0, N_ACTIONS)) if rng.random() < epsilon else int(np.argmax(Q[state]))
+def _epsilon_greedy(
+    Q: np.ndarray, state: int, epsilon: float, rng: np.random.Generator
+) -> int:
+    return (
+        int(rng.integers(0, N_ACTIONS))
+        if rng.random() < epsilon
+        else int(np.argmax(Q[state]))
+    )
 
 
 def _target_policy(Q: np.ndarray, state: int) -> int:
@@ -34,6 +39,7 @@ def _target_policy(Q: np.ndarray, state: int) -> int:
 
 
 # ── Off-policy n-step SARSA with importance sampling ──────────────────────
+
 
 @st.cache_data
 def run_offpolicy_nstep_sarsa(
@@ -85,7 +91,9 @@ def run_offpolicy_nstep_sarsa(
                     target_prob = 1.0 if a_k == _target_policy(Q, s_k) else 0.0
                     # behaviour policy: ε-greedy
                     behaviour_prob = epsilon_behaviour / N_ACTIONS + (
-                        (1 - epsilon_behaviour) if a_k == int(np.argmax(Q[s_k])) else 0.0
+                        (1 - epsilon_behaviour)
+                        if a_k == int(np.argmax(Q[s_k]))
+                        else 0.0
                     )
                     if behaviour_prob == 0:
                         rho = 0.0
@@ -113,6 +121,7 @@ def run_offpolicy_nstep_sarsa(
 
 
 # ── n-step Tree Backup ─────────────────────────────────────────────────────
+
 
 @st.cache_data
 def run_tree_backup(
@@ -185,14 +194,14 @@ def run_tree_backup(
 
 # ── Page ───────────────────────────────────────────────────────────────────
 
+
 def show():
     st.title("Tree Backup vs Importance Sampling")
     st.markdown("**Section 5 — n-step Bootstrapping · Chapter 7**")
 
     # ── Concept ───────────────────────────────────────────────────────────
     st.header("The Off-Policy Problem")
-    st.markdown(
-        """
+    st.markdown("""
 Pages 13 and 14 used **on-policy** algorithms — the policy being learned is the same policy
 used to collect data. Off-policy learning separates these two roles:
 
@@ -202,8 +211,7 @@ used to collect data. Off-policy learning separates these two roles:
 Off-policy learning is powerful — you can learn from data collected by a different agent,
 a human demonstrator, or a historical dataset. But n-step off-policy updates need a
 correction factor.
-"""
-    )
+""")
 
     st.subheader("Method 1: Importance Sampling")
     st.latex(
@@ -227,8 +235,7 @@ correction factor.
     )
 
     st.subheader("Method 2: n-step Tree Backup")
-    st.markdown(
-        """
+    st.markdown("""
 Tree Backup avoids importance sampling entirely. Instead of following the behaviour policy's
 actual actions, it **backs up expected values** over the target policy at every step except
 the one actually taken.
@@ -236,8 +243,7 @@ the one actually taken.
 At each intermediate step k, the backup branches over all actions the target policy might take,
 weighted by their target policy probability — like a tree of possible continuations. Only the
 actually-taken action continues the chain forward.
-"""
-    )
+""")
 
     st.success(
         "**Why Tree Backup avoids IS:** because we never compare the behaviour and target policy "
@@ -246,8 +252,7 @@ actually-taken action continues the chain forward.
     )
 
     with st.expander("Deep Dive — Tree Backup Update in Detail"):
-        st.markdown(
-            r"""
+        st.markdown(r"""
 For a greedy target policy (probability 1 on the best action, 0 on all others), the
 tree backup return simplifies considerably. At each intermediate step $k$:
 
@@ -257,8 +262,7 @@ $$G_{k:k+n}^{\text{TB}} = R_{k+1} + \pi(A_{k+1}|S_{k+1}) \cdot G_{k+1:k+n}^{\tex
 With a greedy target policy, $\pi(A_{k+1}|S_{k+1})$ is 1 if $A_{k+1}$ is the greedy action,
 0 otherwise. The sum over other actions uses the expected Q under the greedy policy. This
 is the Expected SARSA update applied recursively — stable and IS-free.
-"""
-        )
+""")
 
     st.divider()
 
@@ -271,13 +275,21 @@ is the Expected SARSA update applied recursively — stable and IS-free.
         alpha = st.slider("α (step size)", 0.01, 0.5, 0.1, 0.01)
         n_episodes = st.slider("Episodes", 100, 2000, 500, 100)
     with col2:
-        epsilon = st.slider("ε (behaviour policy)", 0.05, 0.5, 0.2, 0.05,
-                            help="Exploration rate for the behaviour policy.")
+        epsilon = st.slider(
+            "ε (behaviour policy)",
+            0.05,
+            0.5,
+            0.2,
+            0.05,
+            help="Exploration rate for the behaviour policy.",
+        )
         smooth_window = st.slider("Smoothing window", 1, 50, 20)
 
     if st.button("Run Comparison", type="primary"):
         with st.spinner("Training both algorithms..."):
-            is_returns, is_ratios = run_offpolicy_nstep_sarsa(n, alpha, epsilon, n_episodes)
+            is_returns, is_ratios = run_offpolicy_nstep_sarsa(
+                n, alpha, epsilon, n_episodes
+            )
             tb_returns = run_tree_backup(n, alpha, epsilon, n_episodes)
 
         st.header("Results")
@@ -291,37 +303,59 @@ is the Expected SARSA update applied recursively — stable and IS-free.
 
         # ── Learning curves ────────────────────────────────────────────
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=x, y=_smooth(is_returns, smooth_window),
-            mode="lines", name="Off-policy IS",
-            line=dict(color="#636EFA", width=2),
-        ))
-        fig.add_trace(go.Scatter(
-            x=x, y=_smooth(tb_returns, smooth_window),
-            mode="lines", name="Tree Backup",
-            line=dict(color="#EF553B", width=2),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=_smooth(is_returns, smooth_window),
+                mode="lines",
+                name="Off-policy IS",
+                line=dict(color="#636EFA", width=2),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=_smooth(tb_returns, smooth_window),
+                mode="lines",
+                name="Tree Backup",
+                line=dict(color="#EF553B", width=2),
+            )
+        )
         fig.update_layout(
             title=f"Episode Returns (n={n}, smoothed over {smooth_window} episodes)",
-            xaxis_title="Episode", yaxis_title="Total Return",
-            template="plotly_white", height=380,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            xaxis_title="Episode",
+            yaxis_title="Total Return",
+            template="plotly_white",
+            height=380,
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
         )
         st.plotly_chart(fig, use_container_width=True)
 
         # ── IS ratio variance ──────────────────────────────────────────
         fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(
-            x=x, y=is_ratios,
-            mode="lines", name="Max IS ratio per episode",
-            line=dict(color="#AB63FA", width=1.5),
-        ))
-        fig2.add_hline(y=1.0, line_dash="dash", line_color="gray",
-                       annotation_text="ratio = 1 (no correction needed)")
+        fig2.add_trace(
+            go.Scatter(
+                x=x,
+                y=is_ratios,
+                mode="lines",
+                name="Max IS ratio per episode",
+                line=dict(color="#AB63FA", width=1.5),
+            )
+        )
+        fig2.add_hline(
+            y=1.0,
+            line_dash="dash",
+            line_color="gray",
+            annotation_text="ratio = 1 (no correction needed)",
+        )
         fig2.update_layout(
             title="Importance Sampling Ratio (max per episode)",
-            xaxis_title="Episode", yaxis_title="Max ρ",
-            template="plotly_white", height=300,
+            xaxis_title="Episode",
+            yaxis_title="Max ρ",
+            template="plotly_white",
+            height=300,
         )
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -331,10 +365,15 @@ is the Expected SARSA update applied recursively — stable and IS-free.
         with col_a:
             st.metric("IS final return (last 100)", f"{is_returns[-100:].mean():.1f}")
         with col_b:
-            st.metric("Tree Backup final return (last 100)", f"{tb_returns[-100:].mean():.1f}")
+            st.metric(
+                "Tree Backup final return (last 100)", f"{tb_returns[-100:].mean():.1f}"
+            )
         with col_c:
-            st.metric("Mean IS ratio", f"{np.mean(is_ratios):.2f}",
-                      help="Higher ratios → higher variance in IS updates")
+            st.metric(
+                "Mean IS ratio",
+                f"{np.mean(is_ratios):.2f}",
+                help="Higher ratios → higher variance in IS updates",
+            )
 
         st.info(
             f"With n = {n} and ε = {epsilon}, the IS ratio can become large, introducing "

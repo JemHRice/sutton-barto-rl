@@ -2,8 +2,8 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
-
 # ── Page ───────────────────────────────────────────────────────────────────
+
 
 def show():
     st.title("Value Function Approximation")
@@ -20,8 +20,7 @@ def show():
 
     # ── Why tabular breaks down ────────────────────────────────────────────
     st.header("Why Tabular Methods Break Down")
-    st.markdown(
-        """
+    st.markdown("""
 Every algorithm so far has stored a separate value estimate for every state (or state-action
 pair) in a table. For small environments — 4×4 GridWorld, a 19-state random walk, a maze
 with 70 cells — this is perfectly fine.
@@ -39,8 +38,7 @@ have similar values.
 
 This is the **curse of dimensionality**: as the number of state variables grows, the number
 of possible states grows exponentially, and tabular methods become completely infeasible.
-"""
-    )
+""")
 
     st.warning(
         "**The fundamental shift:** instead of storing one value per state, we will learn "
@@ -52,14 +50,11 @@ of possible states grows exponentially, and tabular methods become completely in
 
     # ── What is function approximation ────────────────────────────────────
     st.header("Function Approximation")
-    st.markdown(
-        """
+    st.markdown("""
 Instead of a table V[s], we approximate the value function as:
-"""
-    )
+""")
     st.latex(r"\hat{v}(s, \boldsymbol{\theta}) \approx v_\pi(s)")
-    st.markdown(
-        r"""
+    st.markdown(r"""
 where $\boldsymbol{\theta}$ is a vector of learnable **parameters** (weights). The function
 $\hat{v}$ can be anything differentiable:
 
@@ -69,22 +64,18 @@ $\hat{v}$ can be anything differentiable:
   are learned automatically from the raw state representation
 
 The same applies to action values:
-"""
-    )
+""")
     st.latex(r"\hat{q}(s, a, \boldsymbol{\theta}) \approx q_\pi(s, a)")
 
-    st.markdown(
-        """
+    st.markdown("""
 The critical difference from tabular methods: when we update $\boldsymbol{\theta}$ based on
 one state, the change **propagates to all nearby states** through the shared weights. A robot
 that learns the arm is in a good position at angle θ=45° will automatically have a slightly
 updated estimate for θ=46° — because they share the same weight vector.
-"""
-    )
+""")
 
     with st.expander("Deep Dive — The Universal Approximation Theorem"):
-        st.markdown(
-            """
+        st.markdown("""
 A neural network with at least one hidden layer of sufficient width can approximate *any*
 continuous function on a compact domain to arbitrary precision (Cybenko, 1989; Hornik, 1991).
 
@@ -99,36 +90,31 @@ about expressiveness — they are about:
 
 The theorem guarantees representation power exists; it says nothing about whether gradient
 descent will find the right weights in reasonable time.
-"""
-        )
+""")
 
     st.divider()
 
     # ── MSVE objective ─────────────────────────────────────────────────────
     st.header("What Are We Optimising?")
-    st.markdown(
-        """
+    st.markdown("""
 With tabular methods, the goal was simple: make V[s] equal to the true value v(s) for every s.
 With function approximation, we cannot represent every state exactly — we have fewer parameters
 than states. So we need to define what "as good as possible" means.
 
 The standard objective is the **Mean Squared Value Error (MSVE)**:
-"""
-    )
+""")
     st.latex(
         r"\overline{VE}(\boldsymbol{\theta}) = "
         r"\sum_{s \in \mathcal{S}} \mu(s) \bigl[v_\pi(s) - \hat{v}(s, \boldsymbol{\theta})\bigr]^2"
     )
-    st.markdown(
-        r"""
+    st.markdown(r"""
 where $\mu(s)$ is a **state distribution** — how often we care about getting state $s$ right.
 Under the on-policy distribution (states the agent actually visits), $\mu(s)$ is the fraction
 of time the agent spends in state $s$.
 
 We minimise MSVE using **stochastic gradient descent**: after observing a target value for
 state $s$, take a small step in the direction that reduces the squared error.
-"""
-    )
+""")
     st.latex(
         r"\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t + \alpha"
         r"\bigl[v_\pi(S_t) - \hat{v}(S_t, \boldsymbol{\theta}_t)\bigr]"
@@ -144,20 +130,20 @@ state $s$, take a small step in the direction that reduces the squared error.
 
     # ── Interactive linear approximator ───────────────────────────────────
     st.header("Interactive: Linear Value Approximation")
-    st.markdown(
-        """
+    st.markdown("""
 Below is a **1D value function problem**. The true values are shown in orange.
 A linear approximator uses a small number of **basis functions** (Gaussian bumps) as features,
 and learns weights for each one.
 
 Drag the slider to see how approximator capacity (number of basis functions) affects
 how closely it can match the true values.
-"""
-    )
+""")
 
     n_basis = st.slider(
         "Number of basis functions (approximator capacity)",
-        2, 20, 5,
+        2,
+        20,
+        5,
         help="More basis functions → richer representation → closer fit to true values.",
     )
 
@@ -181,16 +167,24 @@ how closely it can match the true values.
     mse = float(np.mean((true_v - approx_v) ** 2))
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=x, y=true_v,
-        mode="lines", name="True value function v(s)",
-        line=dict(color="#EF553B", width=2.5, dash="dash"),
-    ))
-    fig.add_trace(go.Scatter(
-        x=x, y=approx_v,
-        mode="lines", name=f"Linear approx. ({n_basis} basis fns)",
-        line=dict(color="#636EFA", width=2),
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=true_v,
+            mode="lines",
+            name="True value function v(s)",
+            line=dict(color="#EF553B", width=2.5, dash="dash"),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=approx_v,
+            mode="lines",
+            name=f"Linear approx. ({n_basis} basis fns)",
+            line=dict(color="#636EFA", width=2),
+        )
+    )
     fig.update_layout(
         title=f"Linear Approximation  |  MSE = {mse:.4f}",
         xaxis_title="State",
@@ -211,8 +205,7 @@ how closely it can match the true values.
 
     # ── What's next ───────────────────────────────────────────────────────
     st.header("What's Coming Next")
-    st.markdown(
-        """
+    st.markdown("""
 **Bridge Page B** implements the first actual learning algorithm with function approximation:
 semi-gradient TD(0) with a linear approximator. You will see how the update rule above works
 in practice on the Random Walk problem, using NumPy only — no neural networks yet.
@@ -220,8 +213,7 @@ in practice on the Random Walk problem, using NumPy only — no neural networks 
 After the Bridge, the Deep RL sections use **neural networks** as the function approximator,
 bringing in PyTorch for the gradient computations. The theory is identical; only the
 implementation changes.
-"""
-    )
+""")
     st.success(
         "**Key intuition to carry forward:** function approximation trades the ability to "
         "represent states exactly for the ability to *generalise* across states. This is "

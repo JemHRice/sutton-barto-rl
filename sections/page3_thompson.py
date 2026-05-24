@@ -5,8 +5,8 @@ import plotly.graph_objects as go
 import streamlit as st
 import pandas as pd
 
-
 # ── Cached simulations ─────────────────────────────────────────────────────
+
 
 def _sigmoid(x: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-x))
@@ -14,8 +14,11 @@ def _sigmoid(x: np.ndarray) -> np.ndarray:
 
 @st.cache_data
 def run_epsilon_greedy_bernoulli(
-    n_arms: int, n_episodes: int, n_steps: int,
-    epsilon: float, p_true: tuple,
+    n_arms: int,
+    n_episodes: int,
+    n_steps: int,
+    epsilon: float,
+    p_true: tuple,
 ) -> np.ndarray:
     rng = np.random.default_rng(0)
     p = np.array(p_true)
@@ -36,8 +39,11 @@ def run_epsilon_greedy_bernoulli(
 
 @st.cache_data
 def run_ucb_bernoulli(
-    n_arms: int, n_episodes: int, n_steps: int,
-    c: float, p_true: tuple,
+    n_arms: int,
+    n_episodes: int,
+    n_steps: int,
+    c: float,
+    p_true: tuple,
 ) -> np.ndarray:
     rng = np.random.default_rng(1)
     p = np.array(p_true)
@@ -59,7 +65,9 @@ def run_ucb_bernoulli(
 
 @st.cache_data
 def run_thompson_sampling(
-    n_arms: int, n_episodes: int, n_steps: int,
+    n_arms: int,
+    n_episodes: int,
+    n_steps: int,
     p_true: tuple,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -70,20 +78,20 @@ def run_thompson_sampling(
     p = np.array(p_true)
     all_rewards = np.zeros((n_episodes, n_steps))
     final_alpha = np.ones(n_arms)
-    final_beta  = np.ones(n_arms)
+    final_beta = np.ones(n_arms)
 
     for ep in range(n_episodes):
         alpha = np.ones(n_arms)
-        beta  = np.ones(n_arms)
+        beta = np.ones(n_arms)
         for t in range(n_steps):
             action = int(np.argmax(rng.beta(alpha, beta)))
             reward = float(rng.random() < p[action])
             alpha[action] += reward
-            beta[action]  += 1.0 - reward
+            beta[action] += 1.0 - reward
             all_rewards[ep, t] = reward
         if ep == n_episodes - 1:
             final_alpha = alpha.copy()
-            final_beta  = beta.copy()
+            final_beta = beta.copy()
 
     return all_rewards.mean(axis=0), final_alpha, final_beta
 
@@ -97,14 +105,14 @@ def _beta_pdf(alpha: float, beta: float, theta: np.ndarray) -> np.ndarray:
 
 # ── Page ───────────────────────────────────────────────────────────────────
 
+
 def show():
     st.title("Thompson Sampling")
     st.markdown("**Section 1 — Bandit Algorithms**")
 
     # ── Concept explanation ────────────────────────────────────────────────
     st.header("A Different Kind of Uncertainty")
-    st.markdown(
-        """
+    st.markdown("""
 Both ε-greedy and UCB keep a **point estimate** of each arm's value — a single number.
 Thompson Sampling asks a different question: instead of *what's my best guess for this arm?*,
 it asks *what do I actually believe about this arm?*
@@ -138,17 +146,14 @@ the shape of the distribution.
 For **Bernoulli rewards** (success or failure), the Beta distribution is the natural choice.
 Starting with Beta(1, 1) — which is uniform, meaning I have no prior belief — the update
 after seeing $s$ successes and $f$ failures is simply:
-"""
-    )
+""")
     st.latex(r"\text{Beta}(1 + s,\; 1 + f)")
-    st.markdown(
-        """
+    st.markdown("""
 One line. No solver. The distribution updates itself as a closed-form calculation every pull.
 
 **Note:** In this page, the Gaussian 10-armed testbed is converted to Bernoulli rewards via a
 sigmoid mapping so all three algorithms compete on the same set of arms.
-"""
-    )
+""")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -165,8 +170,7 @@ sigmoid mapping so all three algorithms compete on the same set of arms.
         )
 
     with st.expander("Deep Dive — Conjugate Priors"):
-        st.markdown(
-            r"""
+        st.markdown(r"""
 A prior $p(\theta)$ is called **conjugate** to a likelihood $p(x|\theta)$ when the posterior
 has the same functional form as the prior — meaning the update is a simple parameter tweak,
 not a full integration problem.
@@ -183,8 +187,7 @@ and Thompson Sampling converges toward pure exploitation of the best arm.
 
 Conjugate priors exist for many likelihood families: Beta-Binomial, Gamma-Poisson,
 Normal-Normal. This is what makes Thompson Sampling tractable in practice.
-"""
-        )
+""")
 
     st.divider()
 
@@ -200,17 +203,41 @@ Normal-Normal. This is what makes Thompson Sampling tractable in practice.
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        n_episodes = st.slider("Episodes", 50, 500, 200, 50,
-                               help="Independent runs to average over. More episodes → smoother reward curves for all three algorithms.")
+        n_episodes = st.slider(
+            "Episodes",
+            50,
+            500,
+            200,
+            50,
+            help="Independent runs to average over. More episodes → smoother reward curves for all three algorithms.",
+        )
     with col2:
-        n_steps = st.slider("Steps per episode", 100, 2000, 1000, 100,
-                            help="Pulls per run. More steps gives each algorithm more time to identify and exploit the best arm.")
+        n_steps = st.slider(
+            "Steps per episode",
+            100,
+            2000,
+            1000,
+            100,
+            help="Pulls per run. More steps gives each algorithm more time to identify and exploit the best arm.",
+        )
     with col3:
-        epsilon = st.slider("ε (ε-greedy)", 0.0, 1.0, 0.1, 0.01,
-                            help="Exploration probability for the ε-greedy algorithm. Thompson Sampling has no equivalent parameter — it self-regulates.")
+        epsilon = st.slider(
+            "ε (ε-greedy)",
+            0.0,
+            1.0,
+            0.1,
+            0.01,
+            help="Exploration probability for the ε-greedy algorithm. Thompson Sampling has no equivalent parameter — it self-regulates.",
+        )
     with col4:
-        c = st.slider("c (UCB)", 0.1, 5.0, 2.0, 0.1,
-                      help="UCB confidence scaling. Higher c → UCB explores more aggressively; Thompson Sampling doesn't need this parameter.")
+        c = st.slider(
+            "c (UCB)",
+            0.1,
+            5.0,
+            2.0,
+            0.1,
+            help="UCB confidence scaling. Higher c → UCB explores more aggressively; Thompson Sampling doesn't need this parameter.",
+        )
 
     seed = st.number_input("Random seed", value=42, step=1)
 
@@ -220,27 +247,60 @@ Normal-Normal. This is what makes Thompson Sampling tractable in practice.
         p_true = tuple(_sigmoid(true_means).tolist())
         p_arr = np.array(p_true)
 
-        eg_rewards = run_epsilon_greedy_bernoulli(10, n_episodes, n_steps, epsilon, p_true)
+        eg_rewards = run_epsilon_greedy_bernoulli(
+            10, n_episodes, n_steps, epsilon, p_true
+        )
         ucb_rewards = run_ucb_bernoulli(10, n_episodes, n_steps, c, p_true)
-        ts_rewards, ts_alpha, ts_beta = run_thompson_sampling(10, n_episodes, n_steps, p_true)
+        ts_rewards, ts_alpha, ts_beta = run_thompson_sampling(
+            10, n_episodes, n_steps, p_true
+        )
 
         st.header("Results")
 
         steps = list(range(1, n_steps + 1))
         fig_cmp = go.Figure()
-        fig_cmp.add_trace(go.Scatter(x=steps, y=eg_rewards, mode="lines",
-            name=f"ε-Greedy (ε={epsilon})", line=dict(color="#EF553B", width=2)))
-        fig_cmp.add_trace(go.Scatter(x=steps, y=ucb_rewards, mode="lines",
-            name=f"UCB (c={c})", line=dict(color="#636EFA", width=2)))
-        fig_cmp.add_trace(go.Scatter(x=steps, y=ts_rewards, mode="lines",
-            name="Thompson Sampling", line=dict(color="#00CC96", width=2)))
-        fig_cmp.add_hline(y=float(p_arr.max()), line_dash="dash", line_color="gray",
-                          annotation_text="Best arm p")
+        fig_cmp.add_trace(
+            go.Scatter(
+                x=steps,
+                y=eg_rewards,
+                mode="lines",
+                name=f"ε-Greedy (ε={epsilon})",
+                line=dict(color="#EF553B", width=2),
+            )
+        )
+        fig_cmp.add_trace(
+            go.Scatter(
+                x=steps,
+                y=ucb_rewards,
+                mode="lines",
+                name=f"UCB (c={c})",
+                line=dict(color="#636EFA", width=2),
+            )
+        )
+        fig_cmp.add_trace(
+            go.Scatter(
+                x=steps,
+                y=ts_rewards,
+                mode="lines",
+                name="Thompson Sampling",
+                line=dict(color="#00CC96", width=2),
+            )
+        )
+        fig_cmp.add_hline(
+            y=float(p_arr.max()),
+            line_dash="dash",
+            line_color="gray",
+            annotation_text="Best arm p",
+        )
         fig_cmp.update_layout(
             title="Average Reward Over Time — All 3 Algorithms (Bernoulli bandit)",
-            xaxis_title="Step", yaxis_title="Average Reward",
-            template="plotly_white", height=430,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            xaxis_title="Step",
+            yaxis_title="Average Reward",
+            template="plotly_white",
+            height=430,
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
         )
         st.plotly_chart(fig_cmp, use_container_width=True)
 
@@ -261,30 +321,43 @@ Normal-Normal. This is what makes Thompson Sampling tractable in practice.
             a, b = ts_alpha[arm_idx], ts_beta[arm_idx]
             pdf = _beta_pdf(a, b, theta_range)
             is_best = arm_idx == best_arm
-            fig_beta.add_trace(go.Scatter(
-                x=theta_range, y=pdf, mode="lines",
-                name=f"Arm {arm_idx+1} (p*={p_arr[arm_idx]:.2f})",
-                line=dict(color="gold" if is_best else colors[rank],
-                          width=3 if is_best else 1.5),
-                opacity=1.0 if is_best else 0.6,
-            ))
+            fig_beta.add_trace(
+                go.Scatter(
+                    x=theta_range,
+                    y=pdf,
+                    mode="lines",
+                    name=f"Arm {arm_idx+1} (p*={p_arr[arm_idx]:.2f})",
+                    line=dict(
+                        color="gold" if is_best else colors[rank],
+                        width=3 if is_best else 1.5,
+                    ),
+                    opacity=1.0 if is_best else 0.6,
+                )
+            )
         fig_beta.update_layout(
             title="Beta Posteriors for All Arms (gold = best arm)",
-            xaxis_title="θ (success probability)", yaxis_title="Density",
-            template="plotly_white", height=430,
+            xaxis_title="θ (success probability)",
+            yaxis_title="Density",
+            template="plotly_white",
+            height=430,
             legend=dict(font=dict(size=10)),
         )
         st.plotly_chart(fig_beta, use_container_width=True)
 
         # Arm table
         st.subheader("Arm Parameters")
-        st.dataframe(pd.DataFrame({
-            "Arm":          [f"Arm {i+1}" for i in range(10)],
-            "True p*":      [f"{p:.4f}" for p in p_arr],
-            "Final α":      [f"{a:.1f}" for a in ts_alpha],
-            "Final β":      [f"{b:.1f}" for b in ts_beta],
-            "Est. mean":    [f"{a/(a+b):.4f}" for a, b in zip(ts_alpha, ts_beta)],
-        }), use_container_width=True)
+        st.dataframe(
+            pd.DataFrame(
+                {
+                    "Arm": [f"Arm {i+1}" for i in range(10)],
+                    "True p*": [f"{p:.4f}" for p in p_arr],
+                    "Final α": [f"{a:.1f}" for a in ts_alpha],
+                    "Final β": [f"{b:.1f}" for b in ts_beta],
+                    "Est. mean": [f"{a/(a+b):.4f}" for a, b in zip(ts_alpha, ts_beta)],
+                }
+            ),
+            use_container_width=True,
+        )
 
         # Comparison metrics
         st.header("Algorithm Comparison")

@@ -2,13 +2,16 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
-
 # ── Cached simulations ─────────────────────────────────────────────────────
+
 
 @st.cache_data
 def run_epsilon_greedy(
-    n_arms: int, n_episodes: int, n_steps: int,
-    epsilon: float, true_means: tuple,
+    n_arms: int,
+    n_episodes: int,
+    n_steps: int,
+    epsilon: float,
+    true_means: tuple,
 ) -> tuple[np.ndarray, np.ndarray]:
     rng = np.random.default_rng(0)
     means = np.array(true_means)
@@ -33,8 +36,11 @@ def run_epsilon_greedy(
 
 @st.cache_data
 def run_ucb(
-    n_arms: int, n_episodes: int, n_steps: int,
-    c: float, true_means: tuple,
+    n_arms: int,
+    n_episodes: int,
+    n_steps: int,
+    c: float,
+    true_means: tuple,
 ) -> tuple[np.ndarray, np.ndarray]:
     rng = np.random.default_rng(1)
     means = np.array(true_means)
@@ -60,14 +66,14 @@ def run_ucb(
 
 # ── Page ───────────────────────────────────────────────────────────────────
 
+
 def show():
     st.title("UCB — Upper Confidence Bound")
     st.markdown("**Section 1 — Bandit Algorithms**")
 
     # ── Concept explanation ────────────────────────────────────────────────
     st.header("The Problem with Random Exploration")
-    st.markdown(
-        """
+    st.markdown("""
 ε-greedy works, but its exploration is wasteful. When it decides to explore, it picks a machine
 completely at random — even one it's already tried 200 times and confirmed is terrible. It has
 no memory of *which* machines it still knows little about.
@@ -83,13 +89,9 @@ As I pull it more, my estimate gets sharper and the optimistic bonus shrinks. Ev
 if it really is bad, I'll know that, and I'll stop pulling it.
 
 The action I pick each step is the one with the highest **estimated value plus uncertainty bonus**:
-"""
-    )
-    st.latex(
-        r"A_t = \arg\max_a \left[ Q_t(a) + c \sqrt{\frac{\ln t}{N_t(a)}} \right]"
-    )
-    st.markdown(
-        r"""
+""")
+    st.latex(r"A_t = \arg\max_a \left[ Q_t(a) + c \sqrt{\frac{\ln t}{N_t(a)}} \right]")
+    st.markdown(r"""
 The left term $Q_t(a)$ is what I already think about arm $a$. The right term is the **bonus**:
 
 - $N_t(a)$ is small (arm rarely pulled) → big bonus → I go explore it
@@ -102,8 +104,7 @@ The left term $Q_t(a)$ is what I already think about arm $a$. The right term is 
 $c$ scales the bonus. A larger $c$ means I trust my estimates less and explore more aggressively.
 A smaller $c$ means I lock in on promising arms faster. Unlike ε, there's no wasted exploration —
 every "exploratory" pull goes to the arm I'm most uncertain about.
-"""
-    )
+""")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -122,8 +123,7 @@ every "exploratory" pull goes to the arm I'm most uncertain about.
     )
 
     with st.expander("Deep Dive — Logarithmic Regret"):
-        st.markdown(
-            r"""
+        st.markdown(r"""
 **Regret** is the total reward I missed by not always pulling the best arm:
 
 $$L_T = \sum_{t=1}^{T} \left[ q^*(a^*) - q^*(A_t) \right]$$
@@ -137,8 +137,7 @@ $$\liminf_{T\to\infty} \frac{L_T}{\ln T} \geq \sum_{a:\, \mu_a < \mu^*}
 \frac{\mu^* - \mu_a}{\text{KL}(p_a \| p^*)}$$
 
 UCB1 matches this up to a constant factor on the confidence width.
-"""
-        )
+""")
 
     st.divider()
 
@@ -153,17 +152,41 @@ UCB1 matches this up to a constant factor on the confidence width.
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        n_episodes = st.slider("Episodes", 50, 500, 200, 50,
-                               help="Number of independent runs to average over. More episodes → smoother, more reliable curves.")
+        n_episodes = st.slider(
+            "Episodes",
+            50,
+            500,
+            200,
+            50,
+            help="Number of independent runs to average over. More episodes → smoother, more reliable curves.",
+        )
     with col2:
-        n_steps = st.slider("Steps per episode", 100, 2000, 1000, 100,
-                            help="Pulls per run. UCB needs enough steps to build up reliable counts before its bonus kicks in.")
+        n_steps = st.slider(
+            "Steps per episode",
+            100,
+            2000,
+            1000,
+            100,
+            help="Pulls per run. UCB needs enough steps to build up reliable counts before its bonus kicks in.",
+        )
     with col3:
-        epsilon = st.slider("ε (ε-greedy)", 0.0, 1.0, 0.1, 0.01,
-                            help="Exploration probability for the ε-greedy baseline. Controls how often it picks a random arm.")
+        epsilon = st.slider(
+            "ε (ε-greedy)",
+            0.0,
+            1.0,
+            0.1,
+            0.01,
+            help="Exploration probability for the ε-greedy baseline. Controls how often it picks a random arm.",
+        )
     with col4:
-        c = st.slider("c (UCB confidence)", 0.1, 5.0, 2.0, 0.1,
-                      help="Scales the uncertainty bonus. Higher c → more exploration of uncertain arms; lower c → faster exploitation.")
+        c = st.slider(
+            "c (UCB confidence)",
+            0.1,
+            5.0,
+            2.0,
+            0.1,
+            help="Scales the uncertainty bonus. Higher c → more exploration of uncertain arms; lower c → faster exploitation.",
+        )
 
     seed = st.number_input("Random seed", value=42, step=1)
 
@@ -172,30 +195,48 @@ UCB1 matches this up to a constant factor on the confidence width.
         true_means = tuple(rng.standard_normal(10).tolist())
         means_arr = np.array(true_means)
 
-        eg_rewards, eg_counts = run_epsilon_greedy(10, n_episodes, n_steps, epsilon, true_means)
+        eg_rewards, eg_counts = run_epsilon_greedy(
+            10, n_episodes, n_steps, epsilon, true_means
+        )
         ucb_rewards, ucb_counts = run_ucb(10, n_episodes, n_steps, c, true_means)
 
         st.header("Results")
 
         steps = list(range(1, n_steps + 1))
         fig_reward = go.Figure()
-        fig_reward.add_trace(go.Scatter(
-            x=steps, y=eg_rewards, mode="lines",
-            name=f"ε-Greedy (ε={epsilon})", line=dict(color="#EF553B", width=2),
-        ))
-        fig_reward.add_trace(go.Scatter(
-            x=steps, y=ucb_rewards, mode="lines",
-            name=f"UCB (c={c})", line=dict(color="#636EFA", width=2),
-        ))
+        fig_reward.add_trace(
+            go.Scatter(
+                x=steps,
+                y=eg_rewards,
+                mode="lines",
+                name=f"ε-Greedy (ε={epsilon})",
+                line=dict(color="#EF553B", width=2),
+            )
+        )
+        fig_reward.add_trace(
+            go.Scatter(
+                x=steps,
+                y=ucb_rewards,
+                mode="lines",
+                name=f"UCB (c={c})",
+                line=dict(color="#636EFA", width=2),
+            )
+        )
         fig_reward.add_hline(
-            y=float(means_arr.max()), line_dash="dash", line_color="gray",
+            y=float(means_arr.max()),
+            line_dash="dash",
+            line_color="gray",
             annotation_text="Best arm mean",
         )
         fig_reward.update_layout(
             title="Average Reward Over Time — ε-Greedy vs UCB",
-            xaxis_title="Step", yaxis_title="Average Reward",
-            template="plotly_white", height=420,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            xaxis_title="Step",
+            yaxis_title="Average Reward",
+            template="plotly_white",
+            height=420,
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
         )
         st.plotly_chart(fig_reward, use_container_width=True)
 
@@ -203,19 +244,34 @@ UCB1 matches this up to a constant factor on the confidence width.
         arm_labels = [f"Arm {i+1}" for i in range(10)]
 
         fig_counts = go.Figure()
-        fig_counts.add_trace(go.Bar(
-            x=[arm_labels[i] for i in sorted_idx], y=eg_counts[sorted_idx],
-            name=f"ε-Greedy (ε={epsilon})", marker_color="#EF553B", opacity=0.75,
-        ))
-        fig_counts.add_trace(go.Bar(
-            x=[arm_labels[i] for i in sorted_idx], y=ucb_counts[sorted_idx],
-            name=f"UCB (c={c})", marker_color="#636EFA", opacity=0.75,
-        ))
+        fig_counts.add_trace(
+            go.Bar(
+                x=[arm_labels[i] for i in sorted_idx],
+                y=eg_counts[sorted_idx],
+                name=f"ε-Greedy (ε={epsilon})",
+                marker_color="#EF553B",
+                opacity=0.75,
+            )
+        )
+        fig_counts.add_trace(
+            go.Bar(
+                x=[arm_labels[i] for i in sorted_idx],
+                y=ucb_counts[sorted_idx],
+                name=f"UCB (c={c})",
+                marker_color="#636EFA",
+                opacity=0.75,
+            )
+        )
         fig_counts.update_layout(
             title="Action Selection Frequency — avg pulls per episode (sorted worst → best)",
-            xaxis_title="Arm", yaxis_title="Avg pulls",
-            barmode="group", template="plotly_white", height=400,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            xaxis_title="Arm",
+            yaxis_title="Avg pulls",
+            barmode="group",
+            template="plotly_white",
+            height=400,
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
         )
         st.plotly_chart(fig_counts, use_container_width=True)
 

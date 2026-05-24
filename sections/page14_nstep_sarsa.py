@@ -2,7 +2,6 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
-
 # ── Environment: 4×4 GridWorld ─────────────────────────────────────────────
 
 GRID_H, GRID_W = 4, 4
@@ -28,6 +27,7 @@ def _step(state: int, action: int) -> tuple[int, float, bool]:
 
 
 # ── Cached simulation ──────────────────────────────────────────────────────
+
 
 @st.cache_data
 def run_nstep_sarsa(
@@ -79,11 +79,10 @@ def run_nstep_sarsa(
             if tau >= 0:
                 end = int(min(tau + n, T))
                 G = sum(
-                    gamma ** (i - tau - 1) * rewards[i]
-                    for i in range(tau + 1, end + 1)
+                    gamma ** (i - tau - 1) * rewards[i] for i in range(tau + 1, end + 1)
                 )
                 if tau + n < T:
-                    G += gamma ** n * Q[states[tau + n], actions[tau + n]]
+                    G += gamma**n * Q[states[tau + n], actions[tau + n]]
                 s_tau, a_tau = states[tau], actions[tau]
                 Q[s_tau, a_tau] += alpha * (G - Q[s_tau, a_tau])
 
@@ -104,10 +103,13 @@ def run_sarsa_sweep(
     epsilon: float,
     n_episodes: int,
 ) -> dict[int, np.ndarray]:
-    return {n: run_nstep_sarsa(n, alpha, gamma, epsilon, n_episodes)[0] for n in n_values}
+    return {
+        n: run_nstep_sarsa(n, alpha, gamma, epsilon, n_episodes)[0] for n in n_values
+    }
 
 
 # ── Page ───────────────────────────────────────────────────────────────────
+
 
 def show():
     st.title("n-step SARSA Control")
@@ -115,16 +117,14 @@ def show():
 
     # ── Concept ───────────────────────────────────────────────────────────
     st.header("From Prediction to Control")
-    st.markdown(
-        """
+    st.markdown("""
 Page 13 used n-step TD to *evaluate* a fixed policy (predict state values). Here we extend
 n-step bootstrapping to *control* — learning the optimal policy by updating **action values**
 Q(s, a) rather than state values V(s).
 
 The algorithm is **n-step SARSA**: collect n real steps of (state, action, reward) tuples, then
 compute the n-step return and use it to update Q for the first state-action pair in that window.
-"""
-    )
+""")
 
     st.latex(
         r"G_t^{(n)} = R_{t+1} + \gamma R_{t+2} + \cdots + \gamma^{n-1} R_{t+n}"
@@ -143,8 +143,7 @@ compute the n-step return and use it to update Q for the first state-action pair
     )
 
     with st.expander("Deep Dive — Why SARSA, Not Q-Learning?"):
-        st.markdown(
-            """
+        st.markdown("""
 n-step SARSA uses the *actual actions taken* in its bootstrapped return. This makes it
 an **on-policy** algorithm — it evaluates and improves the same ε-greedy policy it uses
 to collect data.
@@ -153,8 +152,7 @@ n-step Q-learning (called n-step Expected SARSA or Tree Backup in off-policy for
 instead use the *best* action at the end of the n-step window, making it off-policy.
 On-policy SARSA is more stable on tasks where the exploration policy matters for safety
 (e.g. near cliffs), as you saw in Cliff Walking on Page 12.
-"""
-        )
+""")
 
     st.divider()
 
@@ -174,7 +172,9 @@ On-policy SARSA is more stable on tasks where the exploration policy matters for
         epsilon = st.slider("ε (exploration)", 0.01, 0.3, 0.1, 0.01)
         n_options = [1, 2, 4, 8, 16]
         selected_ns = st.multiselect(
-            "n values to compare", n_options, default=[1, 4, 16],
+            "n values to compare",
+            n_options,
+            default=[1, 4, 16],
         )
         smooth_window = st.slider("Smoothing window (episodes)", 1, 50, 20)
 
@@ -204,7 +204,8 @@ On-policy SARSA is more stable on tasks where the exploration policy matters for
                 smoothed = raw
             fig.add_trace(
                 go.Scatter(
-                    x=x, y=smoothed,
+                    x=x,
+                    y=smoothed,
                     mode="lines",
                     name=f"n = {n}",
                     line=dict(color=COLOURS[i % len(COLOURS)], width=2),
@@ -216,7 +217,9 @@ On-policy SARSA is more stable on tasks where the exploration policy matters for
             yaxis_title="Total Return",
             template="plotly_white",
             height=400,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -232,7 +235,10 @@ On-policy SARSA is more stable on tasks where the exploration policy matters for
             arrows[GRID_H - 1, GRID_W - 1] = "★"  # goal
 
             z = np.max(Q, axis=1).reshape(GRID_H, GRID_W)
-            text = [[f"{arrows[r,c]}<br>{z[r,c]:.1f}" for c in range(GRID_W)] for r in range(GRID_H)]
+            text = [
+                [f"{arrows[r,c]}<br>{z[r,c]:.1f}" for c in range(GRID_W)]
+                for r in range(GRID_H)
+            ]
 
             fig_p = go.Figure(
                 go.Heatmap(
@@ -260,7 +266,11 @@ On-policy SARSA is more stable on tasks where the exploration policy matters for
         for i, n in enumerate(sorted(selected_ns)):
             last_100 = returns[n][-100:].mean()
             with metric_cols[i]:
-                st.metric(f"n = {n}", f"{last_100:.1f}", help="Mean return over last 100 episodes")
+                st.metric(
+                    f"n = {n}",
+                    f"{last_100:.1f}",
+                    help="Mean return over last 100 episodes",
+                )
 
         best_n = max(sorted(selected_ns), key=lambda n: returns[n][-100:].mean())
         st.info(

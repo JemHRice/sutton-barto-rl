@@ -3,9 +3,14 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from utils.gridworld import (
-    GRID_SIZE, N_STATES, TERMINAL_STATES,
-    ACTION_ARROWS, rc_to_state,
-    solve_policy_iteration, policy_to_arrow_grid, make_value_heatmap,
+    GRID_SIZE,
+    N_STATES,
+    TERMINAL_STATES,
+    ACTION_ARROWS,
+    rc_to_state,
+    solve_policy_iteration,
+    policy_to_arrow_grid,
+    make_value_heatmap,
 )
 
 
@@ -22,13 +27,24 @@ def _make_policy_heatmap(V: np.ndarray, policy: np.ndarray, iteration: int):
                 text = "<b>T</b>"
             else:
                 text = f"<b>{arrow}</b><br><sub>{grid_V[r][c]:.1f}</sub>"
-            annotations.append(dict(
-                x=c, y=r, text=text, showarrow=False,
-                font=dict(size=22 if s not in TERMINAL_STATES else 18, color="black"),
-                xanchor="center", yanchor="middle",
-            ))
-    fig = make_value_heatmap(V, f"Iteration {iteration} — Policy (arrows) + Value Function",
-                             annotations=annotations)
+            annotations.append(
+                dict(
+                    x=c,
+                    y=r,
+                    text=text,
+                    showarrow=False,
+                    font=dict(
+                        size=22 if s not in TERMINAL_STATES else 18, color="black"
+                    ),
+                    xanchor="center",
+                    yanchor="middle",
+                )
+            )
+    fig = make_value_heatmap(
+        V,
+        f"Iteration {iteration} — Policy (arrows) + Value Function",
+        annotations=annotations,
+    )
     return fig
 
 
@@ -38,8 +54,7 @@ def show():
 
     # ── Concept explanation ────────────────────────────────────────────────
     st.header("From Evaluation to Improvement")
-    st.markdown(
-        """
+    st.markdown("""
 Policy evaluation told me how good a given policy is. But what if the policy is bad?
 **Policy iteration** uses that information to make it better — and keeps going until it can't.
 
@@ -52,13 +67,9 @@ to convergence. This gives me $V^\\pi$ — the value of every state under my cur
 values of all states, is there a better action I could take here than my policy currently says?*
 For each state, I look at all four possible actions, compute the immediate reward plus the
 value of where I'd end up, and pick the best one:
-"""
-    )
-    st.latex(
-        r"\pi'(s) = \arg\max_a \left[ r(s,a) + \gamma V^\pi(s') \right]"
-    )
-    st.markdown(
-        """
+""")
+    st.latex(r"\pi'(s) = \arg\max_a \left[ r(s,a) + \gamma V^\pi(s') \right]")
+    st.markdown("""
 If the new policy $\\pi'$ is different from $\\pi$, I switch to it and repeat.
 If nothing changed — every state already has the best possible action — the policy is **stable**,
 and I'm done. That stable policy is the optimal policy $\\pi^*$.
@@ -71,8 +82,7 @@ $V^{\\pi'} \\geq V^\\pi$ everywhere.
 
 And since there are only finitely many deterministic policies, the process must terminate —
 it can't keep improving forever without reaching optimality.
-"""
-    )
+""")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -89,8 +99,7 @@ it can't keep improving forever without reaching optimality.
         )
 
     with st.expander("Deep Dive — Why Convergence Is Finite"):
-        st.markdown(
-            r"""
+        st.markdown(r"""
 In a finite MDP with $|S|$ states and $|A|$ actions, there are $|A|^{|S|}$ deterministic policies.
 Policy iteration produces a *strictly better* policy at each step (unless already optimal),
 so it terminates in at most $|A|^{|S|}$ iterations.
@@ -98,8 +107,7 @@ so it terminates in at most $|A|^{|S|}$ iterations.
 For the 4×4 GridWorld: $4^{14} \approx 268$ million theoretical policies. In practice,
 policy iteration converges in **3–4 iterations** — it's extremely efficient because each
 evaluation step gives such rich information about how to improve.
-"""
-        )
+""")
 
     st.divider()
 

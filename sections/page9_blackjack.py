@@ -4,12 +4,15 @@ import streamlit as st
 from plotly.subplots import make_subplots
 
 from utils.blackjack import (
-    BlackjackEnv, apply_card, simulate_dealer,
-    CARD_POOL, CARD_LABEL,
+    BlackjackEnv,
+    apply_card,
+    simulate_dealer,
+    CARD_POOL,
+    CARD_LABEL,
 )
 
-
 # ── Cached training (extended) ─────────────────────────────────────────────
+
 
 @st.cache_data
 def train_extended(n_episodes: int, seed: int) -> dict:
@@ -22,12 +25,12 @@ def train_extended(n_episodes: int, seed: int) -> dict:
     env.seed(seed)
 
     epsilon = 0.05
-    gamma   = 1.0
+    gamma = 1.0
 
     Q = np.zeros((10, 10, 2, 2))
     N = np.zeros((10, 10, 2, 2), dtype=np.int32)
 
-    outcomes = np.zeros(n_episodes)   # +1 win, 0 draw, -1 loss
+    outcomes = np.zeros(n_episodes)  # +1 win, 0 draw, -1 loss
 
     for ep in range(n_episodes):
         state = env.reset()
@@ -41,10 +44,12 @@ def train_extended(n_episodes: int, seed: int) -> dict:
                 episode.append(((0, 0, 0), 0, reward))
                 continue
 
-            idx    = (p - 12, d - 1, int(ua))
-            action = (int(rng.integers(0, 2))
-                      if rng.random() < epsilon
-                      else int(np.argmax(Q[idx])))
+            idx = (p - 12, d - 1, int(ua))
+            action = (
+                int(rng.integers(0, 2))
+                if rng.random() < epsilon
+                else int(np.argmax(Q[idx]))
+            )
 
             state, reward, done = env.step(action)
             episode.append((idx, action, reward))
@@ -59,9 +64,9 @@ def train_extended(n_episodes: int, seed: int) -> dict:
         for (idx, action), G_sa in first_visit.items():
             pi, di, uai = idx
             N[pi, di, uai, action] += 1
-            Q[pi, di, uai, action] += (
-                (G_sa - Q[pi, di, uai, action]) / N[pi, di, uai, action]
-            )
+            Q[pi, di, uai, action] += (G_sa - Q[pi, di, uai, action]) / N[
+                pi, di, uai, action
+            ]
 
         final_r = episode[-1][2] if episode else 0.0
         outcomes[ep] = 1.0 if final_r > 0 else (-1.0 if final_r < 0 else 0.0)
@@ -80,23 +85,27 @@ def _policy_heatmap(Q: np.ndarray, usable_ace: int, title: str):
     Colour each cell green (stand) or red (hit) based on argmax Q.
     Text shows the action name.
     """
-    policy = np.argmax(Q[:, :, usable_ace, :], axis=-1)   # (10,10): 0=stand,1=hit
-    z      = policy.astype(float)
+    policy = np.argmax(Q[:, :, usable_ace, :], axis=-1)  # (10,10): 0=stand,1=hit
+    z = policy.astype(float)
 
-    text = [["Stand" if policy[r][c] == 0 else "Hit"
-             for c in range(10)] for r in range(10)]
+    text = [
+        ["Stand" if policy[r][c] == 0 else "Hit" for c in range(10)] for r in range(10)
+    ]
 
-    fig = go.Figure(data=go.Heatmap(
-        z=z,
-        x=_DEALER_LABELS,
-        y=_PLAYER_LABELS,
-        colorscale=[[0, "#2ecc71"], [1, "#e74c3c"]],  # green=stand, red=hit
-        showscale=False,
-        zmin=0, zmax=1,
-        text=text,
-        texttemplate="%{text}",
-        textfont=dict(size=11, color="white"),
-    ))
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=z,
+            x=_DEALER_LABELS,
+            y=_PLAYER_LABELS,
+            colorscale=[[0, "#2ecc71"], [1, "#e74c3c"]],  # green=stand, red=hit
+            showscale=False,
+            zmin=0,
+            zmax=1,
+            text=text,
+            texttemplate="%{text}",
+            textfont=dict(size=11, color="white"),
+        )
+    )
     fig.update_layout(
         title=title,
         xaxis_title="Dealer showing",
@@ -109,14 +118,14 @@ def _policy_heatmap(Q: np.ndarray, usable_ace: int, title: str):
 
 # ── Page ───────────────────────────────────────────────────────────────────
 
+
 def show():
     st.title("Solving Blackjack")
     st.markdown("**Section 3 — Monte Carlo Methods**")
 
     # ── Concept ───────────────────────────────────────────────────────────
     st.header("What Does 'Solved' Look Like?")
-    st.markdown(
-        """
+    st.markdown("""
 On page 8, I ran 100k episodes and the Q-values started taking shape.
 But Blackjack has a large state space — 10 × 10 × 2 = 200 states, each with 2 actions —
 and many (state, action) pairs are visited rarely. The estimates are still noisy.
@@ -129,8 +138,7 @@ The basic strategy tells you exactly when to hit and when to stand, based purely
 sum and the dealer's upcard. It's been proven optimal for the standard Blackjack rules.
 The question is: can a learning agent discover it from scratch, with no prior knowledge,
 just by playing many hands?
-"""
-    )
+""")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -147,8 +155,7 @@ just by playing many hands?
         )
 
     with st.expander("Deep Dive — Bias, Variance, and Why More Episodes Help"):
-        st.markdown(
-            r"""
+        st.markdown(r"""
 The MC estimate of $Q(s, a)$ is an **unbiased** estimator of the true $Q^\pi(s,a)$ under the
 behaviour policy — each sample return $G_t$ is an unbiased sample. But it has **high variance**:
 different episodes visiting the same (s,a) return very different $G_t$ values depending on
@@ -161,8 +168,7 @@ Variance reduces as $1/N(s,a)$ — the reciprocal of visit count. So:
 
 This is why 500k+ episodes matter. The rare states (high sums, usable ace) simply need many
 more total episodes before their specific (state, action) pairs are visited enough times.
-"""
-        )
+""")
 
     st.divider()
 
@@ -187,26 +193,28 @@ more total episodes before their specific (state, action) pairs are visited enou
     with col2:
         seed = st.number_input("Random seed", value=42, step=1)
 
-    st.caption("Fixed: ε = 0.05, γ = 1.0 — standard settings for Blackjack convergence.")
+    st.caption(
+        "Fixed: ε = 0.05, γ = 1.0 — standard settings for Blackjack convergence."
+    )
 
     if st.button("Train Agent", type="primary"):
         with st.spinner(f"Running {n_episodes:,} episodes… (cached after first run)"):
             result = train_extended(n_episodes, int(seed))
 
-        Q        = result["Q"]
+        Q = result["Q"]
         outcomes = result["outcomes"]
 
-        st.session_state["bj_Q"]        = Q
+        st.session_state["bj_Q"] = Q
         st.session_state["bj_outcomes"] = outcomes
-        st.session_state["bj_n_ep"]     = n_episodes
+        st.session_state["bj_n_ep"] = n_episodes
 
     if "bj_Q" not in st.session_state:
         st.info("Run the training above to see results.")
         return
 
-    Q        = st.session_state["bj_Q"]
+    Q = st.session_state["bj_Q"]
     outcomes = st.session_state["bj_outcomes"]
-    n_ep     = st.session_state["bj_n_ep"]
+    n_ep = st.session_state["bj_n_ep"]
 
     # ── Results ───────────────────────────────────────────────────────────
     st.header("Results")
@@ -239,19 +247,23 @@ more total episodes before their specific (state, action) pairs are visited enou
     # Win rate curve
     st.subheader("Win Rate Over Training")
     window = max(5_000, n_ep // 100)
-    wins   = (outcomes > 0).astype(float)
+    wins = (outcomes > 0).astype(float)
     rolling = np.convolve(wins, np.ones(window) / window, mode="valid")
 
     fig_wr = go.Figure()
-    fig_wr.add_trace(go.Scatter(
-        x=list(range(window, n_ep + 1)),
-        y=rolling,
-        mode="lines",
-        line=dict(color="#00CC96", width=1.5),
-        name=f"Win rate (window={window:,})",
-    ))
+    fig_wr.add_trace(
+        go.Scatter(
+            x=list(range(window, n_ep + 1)),
+            y=rolling,
+            mode="lines",
+            line=dict(color="#00CC96", width=1.5),
+            name=f"Win rate (window={window:,})",
+        )
+    )
     fig_wr.add_hline(
-        y=float(wins.mean()), line_dash="dash", line_color="gray",
+        y=float(wins.mean()),
+        line_dash="dash",
+        line_color="gray",
         annotation_text=f"Overall avg: {wins.mean():.1%}",
     )
     fig_wr.update_layout(
@@ -266,7 +278,7 @@ more total episodes before their specific (state, action) pairs are visited enou
 
     # Outcome summary
     last_10 = slice(int(n_ep * 0.9), None)
-    win_r  = float((outcomes[last_10] > 0).mean())
+    win_r = float((outcomes[last_10] > 0).mean())
     loss_r = float((outcomes[last_10] < 0).mean())
     draw_r = float((outcomes[last_10] == 0).mean())
 
@@ -287,26 +299,24 @@ more total episodes before their specific (state, action) pairs are visited enou
     # ── Play vs Agent ──────────────────────────────────────────────────────
     st.divider()
     st.header("Play vs Agent — Interactive Demo")
-    st.markdown(
-        """
+    st.markdown("""
 Set your starting hand and watch the trained agent play it out, with the reasoning
 behind each decision shown step by step.
-"""
-    )
+""")
 
     col1, col2, col3 = st.columns(3)
     with col1:
         player_sum = st.selectbox(
             "Your starting sum",
             list(range(12, 22)),
-            index=4,      # default = 16
+            index=4,  # default = 16
             help="12–21. We'll build a compatible hand automatically.",
         )
     with col2:
         dealer_label = st.selectbox(
             "Dealer's upcard",
             ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
-            index=5,      # default = 6
+            index=5,  # default = 6
         )
     with col3:
         usable_ace = st.checkbox(
@@ -346,46 +356,47 @@ behind each decision shown step by step.
 
 # ── Demo helper ────────────────────────────────────────────────────────────
 
+
 def _play_demo(Q: np.ndarray, start_sum: int, dealer_card: int, usable_ace: bool):
     """Step through a hand using the trained agent, showing Q-value reasoning."""
-    rng = np.random.default_rng()   # fresh RNG each demo run
+    rng = np.random.default_rng()  # fresh RNG each demo run
 
     p_sum = start_sum
-    ua    = usable_ace
+    ua = usable_ace
     steps = []
-    done  = False
+    done = False
 
     while not done:
         if not (12 <= p_sum <= 21):
             break
 
-        idx    = (p_sum - 12, dealer_card - 1, int(ua))
-        q_vals = Q[idx]                        # [Q(stand), Q(hit)]
-        action = int(np.argmax(q_vals))        # greedy (no ε in demo)
+        idx = (p_sum - 12, dealer_card - 1, int(ua))
+        q_vals = Q[idx]  # [Q(stand), Q(hit)]
+        action = int(np.argmax(q_vals))  # greedy (no ε in demo)
 
         step_info = {
-            "p_sum":     p_sum,
-            "ua":        ua,
-            "action":    action,
-            "q_stand":   float(q_vals[0]),
-            "q_hit":     float(q_vals[1]),
+            "p_sum": p_sum,
+            "ua": ua,
+            "action": action,
+            "q_stand": float(q_vals[0]),
+            "q_hit": float(q_vals[1]),
             "card_drawn": None,
         }
 
-        if action == 1:   # hit
-            rank        = int(rng.choice(CARD_POOL))
-            card_val    = min(rank, 10)
-            card_name   = CARD_LABEL[card_val]
+        if action == 1:  # hit
+            rank = int(rng.choice(CARD_POOL))
+            card_val = min(rank, 10)
+            card_name = CARD_LABEL[card_val]
             new_sum, new_ua = apply_card(p_sum, ua, rank)
             step_info["card_drawn"] = card_name
-            step_info["new_sum"]    = new_sum
+            step_info["new_sum"] = new_sum
             steps.append(step_info)
             if new_sum > 21:
                 done = True
                 steps[-1]["result"] = "bust"
             else:
                 p_sum, ua = new_sum, new_ua
-        else:             # stand
+        else:  # stand
             steps.append(step_info)
             done = True
 
@@ -413,10 +424,10 @@ def _play_demo(Q: np.ndarray, start_sum: int, dealer_card: int, usable_ace: bool
 
     for i, step in enumerate(steps):
         action_name = "Hit" if step["action"] == 1 else "Stand"
-        q_winner    = "Q(hit)" if step["action"] == 1 else "Q(stand)"
-        q_loser     = "Q(stand)" if step["action"] == 1 else "Q(hit)"
-        q_win_val   = step["q_hit"] if step["action"] == 1 else step["q_stand"]
-        q_lose_val  = step["q_stand"] if step["action"] == 1 else step["q_hit"]
+        q_winner = "Q(hit)" if step["action"] == 1 else "Q(stand)"
+        q_loser = "Q(stand)" if step["action"] == 1 else "Q(hit)"
+        q_win_val = step["q_hit"] if step["action"] == 1 else step["q_stand"]
+        q_lose_val = step["q_stand"] if step["action"] == 1 else step["q_hit"]
 
         ace_str = " (usable ace)" if step["ua"] else ""
         st.markdown(f"**Step {i+1}:** Player sum = **{step['p_sum']}**{ace_str}")

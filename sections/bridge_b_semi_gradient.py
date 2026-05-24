@@ -2,7 +2,6 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
-
 # ── Environment: 19-state Random Walk ─────────────────────────────────────
 
 N_STATES = 19
@@ -33,6 +32,7 @@ def _random_walk_episode(rng: np.random.Generator) -> list[tuple[int, float]]:
 
 # ── Feature representations ────────────────────────────────────────────────
 
+
 def _state_aggregation_features(state: int, n_groups: int = 5) -> np.ndarray:
     """Coarse coding: aggregate 19 states into n_groups groups."""
     group_size = N_STATES / n_groups
@@ -46,7 +46,7 @@ def _state_aggregation_features(state: int, n_groups: int = 5) -> np.ndarray:
 def _polynomial_features(state: int, degree: int = 5) -> np.ndarray:
     """Polynomial basis: [1, x, x^2, ..., x^degree], x in [-1, 1]."""
     x = (state / (N_STATES - 1)) * 2 - 1  # normalise to [-1, 1]
-    return np.array([x ** k for k in range(degree + 1)])
+    return np.array([x**k for k in range(degree + 1)])
 
 
 def _get_features(state: int, feature_type: str, param: int) -> np.ndarray:
@@ -64,6 +64,7 @@ def _n_features(feature_type: str, param: int) -> int:
 
 
 # ── Gradient Monte Carlo ───────────────────────────────────────────────────
+
 
 @st.cache_data
 def run_gradient_mc(
@@ -92,20 +93,25 @@ def run_gradient_mc(
             v_hat = float(np.dot(theta, phi))
             theta += alpha * (G - v_hat) * phi
 
-        learned_V = np.array([
-            float(np.dot(theta, _get_features(s, feature_type, feat_param)))
-            for s in range(N_STATES)
-        ])
+        learned_V = np.array(
+            [
+                float(np.dot(theta, _get_features(s, feature_type, feat_param)))
+                for s in range(N_STATES)
+            ]
+        )
         rms_errors[ep] = float(np.sqrt(np.mean((learned_V - true_V) ** 2)))
 
-    learned_V = np.array([
-        float(np.dot(theta, _get_features(s, feature_type, feat_param)))
-        for s in range(N_STATES)
-    ])
+    learned_V = np.array(
+        [
+            float(np.dot(theta, _get_features(s, feature_type, feat_param)))
+            for s in range(N_STATES)
+        ]
+    )
     return rms_errors, learned_V
 
 
 # ── Semi-gradient TD(0) ────────────────────────────────────────────────────
+
 
 @st.cache_data
 def run_semi_gradient_td(
@@ -151,20 +157,25 @@ def run_semi_gradient_td(
                 theta += alpha * (reward + gamma * v_next - v_hat) * phi
                 state = next_state
 
-        learned_V = np.array([
-            float(np.dot(theta, _get_features(s, feature_type, feat_param)))
-            for s in range(N_STATES)
-        ])
+        learned_V = np.array(
+            [
+                float(np.dot(theta, _get_features(s, feature_type, feat_param)))
+                for s in range(N_STATES)
+            ]
+        )
         rms_errors[ep] = float(np.sqrt(np.mean((learned_V - true_V) ** 2)))
 
-    learned_V = np.array([
-        float(np.dot(theta, _get_features(s, feature_type, feat_param)))
-        for s in range(N_STATES)
-    ])
+    learned_V = np.array(
+        [
+            float(np.dot(theta, _get_features(s, feature_type, feat_param)))
+            for s in range(N_STATES)
+        ]
+    )
     return rms_errors, learned_V
 
 
 # ── Page ───────────────────────────────────────────────────────────────────
+
 
 def show():
     st.title("Semi-Gradient Methods")
@@ -176,8 +187,7 @@ def show():
 
     # ── Concept ───────────────────────────────────────────────────────────
     st.header("Learning the Weights")
-    st.markdown(
-        """
+    st.markdown("""
 Bridge Page A introduced the MSVE objective and the gradient descent update. There is a
 subtlety when we use **bootstrapping** (TD methods) with function approximation.
 
@@ -189,8 +199,7 @@ When we change θ, the target moves too.
 This makes the true gradient difficult to compute. Instead, we use a **semi-gradient** update:
 we treat the bootstrap target as if it were a fixed constant, and only differentiate through
 the estimate on the left side.
-"""
-    )
+""")
 
     st.latex(
         r"\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t + \alpha"
@@ -213,8 +222,7 @@ the estimate on the left side.
     )
 
     with st.expander("Deep Dive — Why 'Semi' Gradient?"):
-        st.markdown(
-            r"""
+        st.markdown(r"""
 True gradient descent on MSVE would require differentiating through the target, giving:
 
 $$\nabla_{\boldsymbol{\theta}} \overline{VE} = \mathbb{E}\bigl[
@@ -229,15 +237,13 @@ With TD, the target $R + \gamma \hat{v}(S', \boldsymbol{\theta})$ depends on θ.
 fixed means we are not following the true gradient — hence "semi." Semi-gradient TD converges
 to a different point than the MSVE minimum (the "TD fixed point"), but this point is usually
 close and semi-gradient TD often learns much faster than gradient MC.
-"""
-        )
+""")
 
     st.divider()
 
     # ── Feature types ──────────────────────────────────────────────────────
     st.header("Feature Representations")
-    st.markdown(
-        """
+    st.markdown("""
 For a linear approximator, we need a **feature vector** $\\mathbf{x}(s)$ that represents
 each state as a vector of numbers. The choice of features matters a lot.
 
@@ -246,8 +252,7 @@ same value estimate — coarse but simple.
 
 **Polynomial basis:** represent state $s$ (normalised to $[-1, 1]$) as powers $[1, s, s^2, \\ldots, s^d]$.
 Higher degree → richer representation → better fit, but more parameters.
-"""
-    )
+""")
 
     st.divider()
 
@@ -262,21 +267,33 @@ Higher degree → richer representation → better fit, but more parameters.
             help="Which type of features to use for the linear approximator.",
         )
         if feature_type == "State Aggregation":
-            feat_param = st.slider("Number of groups", 2, 19, 5,
-                                   help="How many groups to aggregate the 19 states into.")
+            feat_param = st.slider(
+                "Number of groups",
+                2,
+                19,
+                5,
+                help="How many groups to aggregate the 19 states into.",
+            )
         else:
-            feat_param = st.slider("Polynomial degree", 1, 9, 5,
-                                   help="Degree of the polynomial basis.")
+            feat_param = st.slider(
+                "Polynomial degree", 1, 9, 5, help="Degree of the polynomial basis."
+            )
         n_episodes = st.slider("Episodes", 50, 1000, 300, 50)
     with col2:
         alpha_mc = st.slider("α — Gradient MC", 0.001, 0.1, 0.01, 0.001, format="%.3f")
-        alpha_td = st.slider("α — Semi-gradient TD", 0.001, 0.2, 0.05, 0.001, format="%.3f")
+        alpha_td = st.slider(
+            "α — Semi-gradient TD", 0.001, 0.2, 0.05, 0.001, format="%.3f"
+        )
         gamma = st.slider("γ (discount)", 0.9, 1.0, 1.0, 0.01)
 
     if st.button("Run Simulation", type="primary"):
         with st.spinner("Training both methods..."):
-            mc_errors, mc_V = run_gradient_mc(alpha_mc, n_episodes, feature_type, feat_param)
-            td_errors, td_V = run_semi_gradient_td(alpha_td, gamma, n_episodes, feature_type, feat_param)
+            mc_errors, mc_V = run_gradient_mc(
+                alpha_mc, n_episodes, feature_type, feat_param
+            )
+            td_errors, td_V = run_semi_gradient_td(
+                alpha_td, gamma, n_episodes, feature_type, feat_param
+            )
 
         true_V = _true_values()
 
@@ -284,49 +301,77 @@ Higher degree → richer representation → better fit, but more parameters.
 
         # ── RMS error curves ───────────────────────────────────────────
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=list(range(1, n_episodes + 1)), y=mc_errors,
-            mode="lines", name="Gradient MC",
-            line=dict(color="#636EFA", width=2),
-        ))
-        fig.add_trace(go.Scatter(
-            x=list(range(1, n_episodes + 1)), y=td_errors,
-            mode="lines", name="Semi-gradient TD(0)",
-            line=dict(color="#EF553B", width=2),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=list(range(1, n_episodes + 1)),
+                y=mc_errors,
+                mode="lines",
+                name="Gradient MC",
+                line=dict(color="#636EFA", width=2),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=list(range(1, n_episodes + 1)),
+                y=td_errors,
+                mode="lines",
+                name="Semi-gradient TD(0)",
+                line=dict(color="#EF553B", width=2),
+            )
+        )
         fig.update_layout(
             title="RMS Error vs Episodes",
-            xaxis_title="Episode", yaxis_title="RMS Error",
-            template="plotly_white", height=380,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            xaxis_title="Episode",
+            yaxis_title="RMS Error",
+            template="plotly_white",
+            height=380,
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
         )
         st.plotly_chart(fig, use_container_width=True)
 
         # ── Learned value functions ────────────────────────────────────
         states = list(range(1, N_STATES + 1))
         fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(
-            x=states, y=true_V,
-            mode="lines", name="True values",
-            line=dict(color="black", dash="dash", width=2),
-        ))
-        fig2.add_trace(go.Scatter(
-            x=states, y=mc_V,
-            mode="lines+markers", name="Gradient MC",
-            line=dict(color="#636EFA", width=1.5),
-            marker=dict(size=4),
-        ))
-        fig2.add_trace(go.Scatter(
-            x=states, y=td_V,
-            mode="lines+markers", name="Semi-gradient TD(0)",
-            line=dict(color="#EF553B", width=1.5),
-            marker=dict(size=4),
-        ))
+        fig2.add_trace(
+            go.Scatter(
+                x=states,
+                y=true_V,
+                mode="lines",
+                name="True values",
+                line=dict(color="black", dash="dash", width=2),
+            )
+        )
+        fig2.add_trace(
+            go.Scatter(
+                x=states,
+                y=mc_V,
+                mode="lines+markers",
+                name="Gradient MC",
+                line=dict(color="#636EFA", width=1.5),
+                marker=dict(size=4),
+            )
+        )
+        fig2.add_trace(
+            go.Scatter(
+                x=states,
+                y=td_V,
+                mode="lines+markers",
+                name="Semi-gradient TD(0)",
+                line=dict(color="#EF553B", width=1.5),
+                marker=dict(size=4),
+            )
+        )
         fig2.update_layout(
             title=f"Learned Value Functions ({feature_type})",
-            xaxis_title="State", yaxis_title="Estimated Value",
-            template="plotly_white", height=360,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            xaxis_title="State",
+            yaxis_title="Estimated Value",
+            template="plotly_white",
+            height=360,
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
         )
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -338,7 +383,11 @@ Higher degree → richer representation → better fit, but more parameters.
         with col_b:
             st.metric("Semi-grad TD final RMS", f"{td_errors[-1]:.4f}")
         with col_c:
-            feat_desc = f"{feat_param} groups" if feature_type == "State Aggregation" else f"degree {feat_param}"
+            feat_desc = (
+                f"{feat_param} groups"
+                if feature_type == "State Aggregation"
+                else f"degree {feat_param}"
+            )
             st.metric("Feature capacity", feat_desc)
 
         st.info(

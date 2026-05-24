@@ -3,7 +3,6 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
-
 # ── Reuse the same maze from Page 16 ──────────────────────────────────────
 
 MAZE_H, MAZE_W = 7, 10
@@ -11,8 +10,15 @@ START = (6, 0)
 GOAL = (5, 9)
 _WALLS = {
     (0, 9),
-    (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 9),
-    (2, 6), (3, 6),
+    (1, 2),
+    (1, 3),
+    (1, 4),
+    (1, 5),
+    (1, 6),
+    (1, 7),
+    (1, 9),
+    (2, 6),
+    (3, 6),
 }
 N_STATES = MAZE_H * MAZE_W
 N_ACTIONS = 4
@@ -44,6 +50,7 @@ def _maze_step(state: int, action: int) -> tuple[int, float, bool]:
 
 
 # ── Prioritised Sweeping ───────────────────────────────────────────────────
+
 
 @st.cache_data
 def run_prioritized_sweeping(
@@ -104,10 +111,12 @@ def run_prioritized_sweeping(
             Q[s_p, a_p] += alpha * (r_p + gamma * np.max(Q[ns_p]) - Q[s_p, a_p])
 
             # Check predecessors of s_p
-            for (pred_s, pred_a) in predecessors[s_p]:
+            for pred_s, pred_a in predecessors[s_p]:
                 if (pred_s, pred_a) in model:
                     pred_ns, pred_r = model[(pred_s, pred_a)]
-                    pred_td = abs(pred_r + gamma * np.max(Q[pred_ns]) - Q[pred_s, pred_a])
+                    pred_td = abs(
+                        pred_r + gamma * np.max(Q[pred_ns]) - Q[pred_s, pred_a]
+                    )
                     if pred_td > theta:
                         heapq.heappush(pq, (-pred_td, pred_s, pred_a))
                         in_queue[(pred_s, pred_a)] = pred_td
@@ -188,14 +197,14 @@ def run_random_dyna(
 
 # ── Page ───────────────────────────────────────────────────────────────────
 
+
 def show():
     st.title("Prioritised Sweeping")
     st.markdown("**Section 6 — Planning and Learning · Chapter 8**")
 
     # ── Concept ───────────────────────────────────────────────────────────
     st.header("Smarter Planning")
-    st.markdown(
-        """
+    st.markdown("""
 Plain Dyna-Q plans by picking **random** previously-seen state-action pairs and updating them.
 This is wasteful — most updates are on states where the value is already accurate and the
 TD error is near zero. Updating them again changes almost nothing.
@@ -203,13 +212,12 @@ TD error is near zero. Updating them again changes almost nothing.
 **Prioritised Sweeping** directs planning effort where it matters most: towards the
 state-action pairs with the largest **TD error** — the ones where the current Q estimate
 is most wrong.
-"""
-    )
+""")
 
-    st.markdown("After each real experience, compute the TD error for the observed (s, a):")
-    st.latex(
-        r"P(s,a) = \left| r + \gamma \max_{a'} Q(s', a') - Q(s, a) \right|"
+    st.markdown(
+        "After each real experience, compute the TD error for the observed (s, a):"
     )
+    st.latex(r"P(s,a) = \left| r + \gamma \max_{a'} Q(s', a') - Q(s, a) \right|")
     st.markdown(
         "If this priority exceeds a threshold θ, insert (s, a) into a priority queue. "
         "At each planning step, pop the highest-priority pair, update it, then propagate "
@@ -225,8 +233,7 @@ is most wrong.
     )
 
     with st.expander("Deep Dive — The Predecessor Propagation Loop"):
-        st.markdown(
-            r"""
+        st.markdown(r"""
 After updating $Q(s, a)$, the values of all predecessor state-action pairs $(s^-, a^-)$ that
 lead to $s$ may now be stale. We recompute their priorities:
 
@@ -239,8 +246,7 @@ reward.
 
 This is why prioritised sweeping can reach the goal in far fewer real environment steps than
 random Dyna-Q — especially in large mazes with sparse rewards.
-"""
-        )
+""")
 
     st.divider()
 
@@ -256,7 +262,11 @@ random Dyna-Q — especially in large mazes with sparse rewards.
         gamma = st.slider("γ (discount)", 0.9, 1.0, 0.95, 0.01)
         epsilon = st.slider("ε (exploration)", 0.01, 0.3, 0.1, 0.01)
         theta = st.slider(
-            "θ (priority threshold)", 0.0001, 0.1, 0.001, 0.0001,
+            "θ (priority threshold)",
+            0.0001,
+            0.1,
+            0.001,
+            0.0001,
             format="%.4f",
             help="Minimum TD error to add to the priority queue. Smaller θ → more updates.",
         )
@@ -274,21 +284,33 @@ random Dyna-Q — especially in large mazes with sparse rewards.
 
         # ── Learning curves ────────────────────────────────────────────
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=x, y=dq_cum, mode="lines", name="Random Dyna-Q",
-            line=dict(color="#636EFA", width=2),
-        ))
-        fig.add_trace(go.Scatter(
-            x=x, y=ps_cum, mode="lines", name="Prioritised Sweeping",
-            line=dict(color="#EF553B", width=2),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=dq_cum,
+                mode="lines",
+                name="Random Dyna-Q",
+                line=dict(color="#636EFA", width=2),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=ps_cum,
+                mode="lines",
+                name="Prioritised Sweeping",
+                line=dict(color="#EF553B", width=2),
+            )
+        )
         fig.update_layout(
             title="Cumulative Reward vs Environment Steps",
             xaxis_title="Environment Steps",
             yaxis_title="Cumulative Reward",
             template="plotly_white",
             height=380,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -309,22 +331,26 @@ random Dyna-Q — especially in large mazes with sparse rewards.
                 elif (r, c) == START:
                     text_grid[r][c] = "S"
 
-        fig2 = go.Figure(go.Heatmap(
-            z=priority_map,
-            text=text_grid,
-            texttemplate="%{text}",
-            colorscale="Reds",
-            showscale=True,
-            zmin=0,
-            colorbar=dict(title="Priority"),
-        ))
+        fig2 = go.Figure(
+            go.Heatmap(
+                z=priority_map,
+                text=text_grid,
+                texttemplate="%{text}",
+                colorscale="Reds",
+                showscale=True,
+                zmin=0,
+                colorbar=dict(title="Priority"),
+            )
+        )
         for r in range(MAZE_H):
             for c in range(MAZE_W):
                 if _is_wall(r, c):
                     fig2.add_shape(
                         type="rect",
-                        x0=c - 0.5, x1=c + 0.5,
-                        y0=r - 0.5, y1=r + 0.5,
+                        x0=c - 0.5,
+                        x1=c + 0.5,
+                        y0=r - 0.5,
+                        y1=r + 0.5,
                         fillcolor="rgba(50,50,50,0.7)",
                         line=dict(width=0),
                     )

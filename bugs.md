@@ -1,6 +1,6 @@
 # Bug Reports
 
-> All 16 bugs SQUISHED as of 2026-05-21.
+> All 16 bugs SQUISHED as of 2026-05-21. Bug 17 logged and fixed same session.
 
 ---
 
@@ -9,6 +9,15 @@
 **Trigger:** What you clicked / selected / set before the bug appeared.  
 **Expected:** What should have happened.  
 **Actual:** What actually happened (error message if there is one).
+
+---
+
+## 🐛 SQUISHED — Bug 17 — Filesystem: Two conflicting Page 21 files
+
+**Trigger:** Inspecting the `sections/` directory.  
+**Expected:** One canonical file for Page 21 (`page21_nn_value.py`) wired into `app.py`.  
+**Actual:** A second file `page21_neural_value.py` existed alongside it — a stale draft that imports `utils.feature_bases` rather than PyTorch, and is not referenced by `app.py`.  
+**Fix:** Deleted `sections/page21_neural_value.py`.
 
 ---
 

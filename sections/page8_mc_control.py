@@ -5,8 +5,8 @@ from plotly.subplots import make_subplots
 
 from utils.blackjack import BlackjackEnv
 
-
 # ── Cached training ────────────────────────────────────────────────────────
+
 
 @st.cache_data
 def train_mc_control(
@@ -30,13 +30,13 @@ def train_mc_control(
     env = BlackjackEnv(natural=True)
     env.seed(seed)
 
-    Q = np.zeros((10, 10, 2, 2))    # (player, dealer, ace, action)
+    Q = np.zeros((10, 10, 2, 2))  # (player, dealer, ace, action)
     N = np.zeros((10, 10, 2, 2), dtype=np.int32)
     rewards = np.zeros(n_episodes)
 
     for ep in range(n_episodes):
         state = env.reset()
-        episode = []     # list of (state_idx, action, reward)
+        episode = []  # list of (state_idx, action, reward)
         done = False
 
         while not done:
@@ -59,18 +59,20 @@ def train_mc_control(
             episode.append((idx, action, reward))
 
         # ── First-visit MC return update ───────────────────────────────
-        G           = 0.0
-        first_visit = {}     # (idx, action) → return at first occurrence
+        G = 0.0
+        first_visit = {}  # (idx, action) → return at first occurrence
 
         for t in range(len(episode) - 1, -1, -1):
             idx, action, r = episode[t]
             G = r + gamma * G
-            first_visit[(idx, action)] = G    # backward pass → keeps earliest
+            first_visit[(idx, action)] = G  # backward pass → keeps earliest
 
         for (idx, action), G_sa in first_visit.items():
             pi, di, uai = idx
             N[pi, di, uai, action] += 1
-            Q[pi, di, uai, action] += (G_sa - Q[pi, di, uai, action]) / N[pi, di, uai, action]
+            Q[pi, di, uai, action] += (G_sa - Q[pi, di, uai, action]) / N[
+                pi, di, uai, action
+            ]
 
         rewards[ep] = episode[-1][2] if episode else 0.0
 
@@ -88,17 +90,19 @@ def _q_heatmap(Q: np.ndarray, usable_ace: int, action: int, title: str):
     Return a Plotly heatmap of Q[player, dealer, usable_ace, action].
     Rows = player_sum (12→21), columns = dealer_card (A→10).
     """
-    z = Q[:, :, usable_ace, action]          # shape (10, 10)
-    fig = go.Figure(data=go.Heatmap(
-        z=z,
-        x=_DEALER_LABELS,
-        y=_PLAYER_LABELS,
-        colorscale="RdYlGn",
-        colorbar=dict(title="Q"),
-        text=[[f"{z[r][c]:.2f}" for c in range(10)] for r in range(10)],
-        texttemplate="%{text}",
-        textfont=dict(size=9),
-    ))
+    z = Q[:, :, usable_ace, action]  # shape (10, 10)
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=z,
+            x=_DEALER_LABELS,
+            y=_PLAYER_LABELS,
+            colorscale="RdYlGn",
+            colorbar=dict(title="Q"),
+            text=[[f"{z[r][c]:.2f}" for c in range(10)] for r in range(10)],
+            texttemplate="%{text}",
+            textfont=dict(size=9),
+        )
+    )
     fig.update_layout(
         title=title,
         xaxis_title="Dealer showing",
@@ -111,14 +115,14 @@ def _q_heatmap(Q: np.ndarray, usable_ace: int, action: int, title: str):
 
 # ── Page ───────────────────────────────────────────────────────────────────
 
+
 def show():
     st.title("Monte Carlo Control")
     st.markdown("**Section 3 — Monte Carlo Methods**")
 
     # ── Concept ───────────────────────────────────────────────────────────
     st.header("Finding the Optimal Policy Without a Model")
-    st.markdown(
-        """
+    st.markdown("""
 MC prediction told me how good a fixed policy is. Now I want to find the *best* policy —
 without a model.
 
@@ -130,20 +134,16 @@ I don't have that here.
 The fix is to shift from estimating **V(s)** (value of a state) to estimating **Q(s, a)**
 (value of taking action $a$ from state $s$). If I know Q, I can pick the best action
 without knowing where it leads:
-"""
-    )
+""")
     st.latex(r"\pi(s) = \arg\max_a\; Q(s, a)")
-    st.markdown(
-        """
+    st.markdown("""
 The Q-value for a (state, action) pair is updated the same way as before — I track the
 return I collected from each (state, action) visit and average over episodes:
-"""
-    )
+""")
     st.latex(
         r"Q(s, a) \;\leftarrow\; Q(s, a) + \frac{1}{N(s,a)}\bigl[G_t - Q(s,a)\bigr]"
     )
-    st.markdown(
-        """
+    st.markdown("""
 The full MC control loop is:
 
 1. **Generate an episode** using my current ε-greedy policy
@@ -160,8 +160,7 @@ Those Q-values will stay at their initial estimates and I'll never know if they 
 will eventually converge.
 
 This is **on-policy** control: I'm using the same policy I'm learning about to generate experience.
-"""
-    )
+""")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -177,8 +176,7 @@ This is **on-policy** control: I'm using the same policy I'm learning about to g
         )
 
     with st.expander("Deep Dive — Why Q and Not V?"):
-        st.markdown(
-            r"""
+        st.markdown(r"""
 With a model, the greedy improvement step from $V$ works:
 
 $$\pi'(s) = \arg\max_a \sum_{s',r} p(s',r|s,a)\bigl[r + \gamma V(s')\bigr]$$
@@ -192,15 +190,13 @@ $$\pi'(s) = \arg\max_a\; Q(s, a)$$
 No model needed. $Q(s, a)$ already encodes the expected return after taking action $a$,
 including all the downstream consequences. That's why Q-values — not V-values — are the
 workhorse of model-free RL.
-"""
-        )
+""")
 
     st.divider()
 
     # ── Environment intro ─────────────────────────────────────────────────
     st.header("The Environment — Blackjack")
-    st.markdown(
-        """
+    st.markdown("""
 **State:** (player sum, dealer's face-up card, whether I have a usable ace)
 
 A **usable ace** is one I can count as 11 without busting. If I later draw a card
@@ -215,8 +211,7 @@ that would bust me, the ace flips to 1 automatically.
 
 I start with two cards; if my sum is below 12, I auto-hit until it reaches 12
 (no meaningful decision below 12 — I can't bust on the next card).
-"""
-    )
+""")
 
     st.divider()
 
@@ -231,14 +226,32 @@ I start with two cards; if my sum is below 12, I auto-hit until it reaches 12
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        n_episodes = st.slider("Number of episodes", 10_000, 500_000, 100_000, 10_000,
-                               help="Hands of Blackjack to play. More episodes → rarer (state, action) pairs get visited and Q-values converge.")
+        n_episodes = st.slider(
+            "Number of episodes",
+            10_000,
+            500_000,
+            100_000,
+            10_000,
+            help="Hands of Blackjack to play. More episodes → rarer (state, action) pairs get visited and Q-values converge.",
+        )
     with col2:
-        epsilon = st.slider("ε (exploration)", 0.01, 0.5, 0.1, 0.01,
-                            help="Probability of taking a random action. Ensures every (state, action) pair gets visited — without it, unvisited pairs never get Q-value estimates.")
+        epsilon = st.slider(
+            "ε (exploration)",
+            0.01,
+            0.5,
+            0.1,
+            0.01,
+            help="Probability of taking a random action. Ensures every (state, action) pair gets visited — without it, unvisited pairs never get Q-value estimates.",
+        )
     with col3:
-        gamma = st.slider("γ (discount)", 0.5, 1.0, 1.0, 0.05,
-                          help="Discount factor. γ = 1 is standard for Blackjack — episodes always end, so no need to discount future rewards.")
+        gamma = st.slider(
+            "γ (discount)",
+            0.5,
+            1.0,
+            1.0,
+            0.05,
+            help="Discount factor. γ = 1 is standard for Blackjack — episodes always end, so no need to discount future rewards.",
+        )
 
     seed = st.number_input("Random seed", value=42, step=1)
 
@@ -246,7 +259,7 @@ I start with two cards; if my sum is below 12, I auto-hit until it reaches 12
         with st.spinner(f"Running {n_episodes:,} episodes…"):
             result = train_mc_control(n_episodes, epsilon, gamma, int(seed))
 
-        Q       = result["Q"]
+        Q = result["Q"]
         rewards = result["rewards"]
 
         st.header("Results")
@@ -256,12 +269,16 @@ I start with two cards; if my sum is below 12, I auto-hit until it reaches 12
         col_l, col_r = st.columns(2)
         with col_l:
             st.plotly_chart(
-                _q_heatmap(Q, usable_ace=0, action=0, title="Q(s, Stand) — No Usable Ace"),
+                _q_heatmap(
+                    Q, usable_ace=0, action=0, title="Q(s, Stand) — No Usable Ace"
+                ),
                 use_container_width=True,
             )
         with col_r:
             st.plotly_chart(
-                _q_heatmap(Q, usable_ace=0, action=1, title="Q(s, Hit) — No Usable Ace"),
+                _q_heatmap(
+                    Q, usable_ace=0, action=1, title="Q(s, Hit) — No Usable Ace"
+                ),
                 use_container_width=True,
             )
 
@@ -285,13 +302,15 @@ I start with two cards; if my sum is below 12, I auto-hit until it reaches 12
         rolling_win = np.convolve(wins, np.ones(window) / window, mode="valid")
 
         fig_wr = go.Figure()
-        fig_wr.add_trace(go.Scatter(
-            x=list(range(window, n_episodes + 1)),
-            y=rolling_win,
-            mode="lines",
-            line=dict(color="#00CC96", width=2),
-            name=f"Win rate (window={window:,})",
-        ))
+        fig_wr.add_trace(
+            go.Scatter(
+                x=list(range(window, n_episodes + 1)),
+                y=rolling_win,
+                mode="lines",
+                line=dict(color="#00CC96", width=2),
+                name=f"Win rate (window={window:,})",
+            )
+        )
         fig_wr.update_layout(
             title=f"Rolling Win Rate (window = {window:,} episodes)",
             xaxis_title="Episode",
@@ -305,7 +324,7 @@ I start with two cards; if my sum is below 12, I auto-hit until it reaches 12
         # ── Metrics ────────────────────────────────────────────────────────
         st.header("Key Takeaways")
         last_10pct = slice(int(n_episodes * 0.9), None)
-        win_rate  = float((rewards[last_10pct] > 0).mean())
+        win_rate = float((rewards[last_10pct] > 0).mean())
         loss_rate = float((rewards[last_10pct] < 0).mean())
         draw_rate = float((rewards[last_10pct] == 0).mean())
 

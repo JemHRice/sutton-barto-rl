@@ -2,8 +2,8 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
-
 # ── Environment ────────────────────────────────────────────────────────────
+
 
 def _true_values_random_walk(n_states: int = 19) -> np.ndarray:
     """True state values for the n-state random walk under uniform random policy."""
@@ -11,6 +11,7 @@ def _true_values_random_walk(n_states: int = 19) -> np.ndarray:
 
 
 # ── Cached simulation ──────────────────────────────────────────────────────
+
 
 @st.cache_data
 def run_nstep_td(
@@ -60,11 +61,10 @@ def run_nstep_td(
                 # Compute n-step return
                 end = int(min(tau + n, T))
                 G = sum(
-                    gamma ** (i - tau - 1) * rewards[i]
-                    for i in range(tau + 1, end + 1)
+                    gamma ** (i - tau - 1) * rewards[i] for i in range(tau + 1, end + 1)
                 )
                 if tau + n < T:
-                    G += gamma ** n * V[states[tau + n]]
+                    G += gamma**n * V[states[tau + n]]
                 s_tau = states[tau]
                 if s_tau not in (0, n_states + 1):
                     V[s_tau] += alpha * (G - V[s_tau])
@@ -91,14 +91,14 @@ def run_all_n(
 
 # ── Page ───────────────────────────────────────────────────────────────────
 
+
 def show():
     st.title("n-step TD Prediction")
     st.markdown("**Section 5 — n-step Bootstrapping · Chapter 7**")
 
     # ── Concept ───────────────────────────────────────────────────────────
     st.header("The Idea")
-    st.markdown(
-        """
+    st.markdown("""
 TD(0) updates using the reward from **one** step ahead, then bootstraps from the estimated
 value of the next state. Monte Carlo waits for the **entire episode** to finish, using the
 true return all the way to the end.
@@ -110,15 +110,16 @@ those n steps, then bootstraps from wherever it ends up. As you increase n:
 - **n = ∞** → Monte Carlo: zero bias, high variance (real returns, but noisy)
 - **Small n (2–8)** → often the sweet spot: enough real rewards to reduce bias, not so many
   that variance explodes
-"""
-    )
+""")
 
     st.latex(
         r"G_t^{(n)} \;=\; R_{t+1} + \gamma R_{t+2} + \cdots + \gamma^{n-1} R_{t+n}"
         r"\;+\; \gamma^n V(S_{t+n})"
     )
 
-    st.markdown("The update rule is then the same as TD(0), but using this n-step return:")
+    st.markdown(
+        "The update rule is then the same as TD(0), but using this n-step return:"
+    )
     st.latex(r"V(S_t) \;\leftarrow\; V(S_t) + \alpha\bigl[G_t^{(n)} - V(S_t)\bigr]")
 
     st.info(
@@ -129,8 +130,7 @@ those n steps, then bootstraps from wherever it ends up. As you increase n:
     )
 
     with st.expander("Deep Dive — The n-step Return in Detail"):
-        st.markdown(
-            r"""
+        st.markdown(r"""
 For an episode that terminates at time $T$, the n-step return is:
 
 $$G_t^{(n)} = \sum_{k=1}^{\min(n,T-t)} \gamma^{k-1} R_{t+k} \;+\; \gamma^n V(S_{t+n}) \cdot \mathbf{1}[t+n < T]$$
@@ -141,15 +141,13 @@ exactly like Monte Carlo for that suffix of the episode.
 
 This means n-step TD unifies TD(0) and MC within a single framework. Setting $n = 1$ gives
 TD(0); letting $n \to \infty$ recovers the full Monte Carlo return.
-"""
-        )
+""")
 
     st.divider()
 
     # ── Environment ───────────────────────────────────────────────────────
     st.header("Environment: 19-State Random Walk")
-    st.markdown(
-        """
+    st.markdown("""
 The agent starts in the centre of a chain of **19 states**. At each step it moves left or right
 with equal probability. The left terminal pays **−1**, the right terminal pays **+1**. All other
 transitions give **0** reward.
@@ -157,8 +155,7 @@ transitions give **0** reward.
 The true state values under the random policy are known analytically — they form a straight line
 from −1 to +1. We use root-mean-square error against these true values to measure learning
 speed.
-"""
-    )
+""")
 
     st.divider()
 
@@ -171,13 +168,31 @@ speed.
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        n_episodes = st.slider("Episodes", 50, 500, 200, 50,
-                               help="Training episodes per n value. More episodes → smoother curves.")
-        alpha = st.slider("α (step size)", 0.01, 0.5, 0.1, 0.01,
-                          help="Learning rate. Too high → unstable; too low → slow.")
+        n_episodes = st.slider(
+            "Episodes",
+            50,
+            500,
+            200,
+            50,
+            help="Training episodes per n value. More episodes → smoother curves.",
+        )
+        alpha = st.slider(
+            "α (step size)",
+            0.01,
+            0.5,
+            0.1,
+            0.01,
+            help="Learning rate. Too high → unstable; too low → slow.",
+        )
     with col2:
-        gamma = st.slider("γ (discount)", 0.9, 1.0, 1.0, 0.01,
-                          help="Discount factor. For episodic random walk, γ=1 is standard.")
+        gamma = st.slider(
+            "γ (discount)",
+            0.9,
+            1.0,
+            1.0,
+            0.01,
+            help="Discount factor. For episodic random walk, γ=1 is standard.",
+        )
         n_values_options = [1, 2, 4, 8, 16, 32]
         selected_ns = st.multiselect(
             "n values to compare",
@@ -219,7 +234,9 @@ speed.
             yaxis_title="RMS Error",
             template="plotly_white",
             height=420,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -254,7 +271,9 @@ speed.
                 yaxis_title="Estimated Value",
                 template="plotly_white",
                 height=380,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+                ),
             )
             st.plotly_chart(fig2, use_container_width=True)
 

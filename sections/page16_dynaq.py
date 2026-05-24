@@ -2,7 +2,6 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
-
 # ── Maze environment ───────────────────────────────────────────────────────
 #
 #  S = start, G = goal, # = wall
@@ -21,8 +20,15 @@ GOAL = (5, 9)  # adjusted to a reachable spot
 
 _WALLS = {
     (0, 9),
-    (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 9),
-    (2, 6), (3, 6),
+    (1, 2),
+    (1, 3),
+    (1, 4),
+    (1, 5),
+    (1, 6),
+    (1, 7),
+    (1, 9),
+    (2, 6),
+    (3, 6),
 }
 
 N_STATES = MAZE_H * MAZE_W
@@ -56,6 +62,7 @@ def _maze_step(state: int, action: int) -> tuple[int, float, bool]:
 
 
 # ── Dyna-Q ─────────────────────────────────────────────────────────────────
+
 
 @st.cache_data
 def run_dynaq(
@@ -112,9 +119,7 @@ def run_dynaq(
             idx = rng.integers(0, len(seen_sa))
             s_p, a_p = seen_sa[idx]
             ns_p, r_p = model[(s_p, a_p)]
-            Q[s_p, a_p] += alpha * (
-                r_p + gamma * np.max(Q[ns_p]) - Q[s_p, a_p]
-            )
+            Q[s_p, a_p] += alpha * (r_p + gamma * np.max(Q[ns_p]) - Q[s_p, a_p])
 
         cumulative[step] = reward if step == 0 else cumulative[step - 1] + reward
         step += 1
@@ -141,6 +146,7 @@ def run_dynaq_sweep(
 
 
 # ── Maze figure ────────────────────────────────────────────────────────────
+
 
 def _maze_figure(Q: np.ndarray | None = None, title: str = "Maze") -> go.Figure:
     cell_colors = []
@@ -177,7 +183,8 @@ def _maze_figure(Q: np.ndarray | None = None, title: str = "Maze") -> go.Figure:
             texttemplate="%{text}",
             colorscale="Blues",
             showscale=False,
-            zmin=0, zmax=1,
+            zmin=0,
+            zmax=1,
         )
     )
     fig.update_layout(
@@ -193,14 +200,14 @@ def _maze_figure(Q: np.ndarray | None = None, title: str = "Maze") -> go.Figure:
 
 # ── Page ───────────────────────────────────────────────────────────────────
 
+
 def show():
     st.title("Dyna-Q: Learning with a Model")
     st.markdown("**Section 6 — Planning and Learning · Chapter 8**")
 
     # ── Concept ───────────────────────────────────────────────────────────
     st.header("Planning vs Learning")
-    st.markdown(
-        """
+    st.markdown("""
 Every RL algorithm we have built so far learns directly from experience — the agent takes a
 real action in the environment and updates from the real outcome. This is **model-free** learning.
 
@@ -216,8 +223,7 @@ After each real environment step, Dyna-Q:
 The model is just a dictionary: `model[(s, a)] → (r, s')`. Each planning step is a free
 simulated experience — and with enough planning steps, the agent can learn a good policy
 from very few real environment interactions.
-"""
-    )
+""")
 
     st.latex(
         r"\text{Planning update: } "
@@ -231,8 +237,7 @@ from very few real environment interactions.
     )
 
     with st.expander("Deep Dive — When Does Planning Help?"):
-        st.markdown(
-            """
+        st.markdown("""
 Planning helps most when:
 - **Real interactions are expensive** (robotics, clinical trials, anything that takes real time
   or has real costs). A learned model lets you simulate thousands of experiences cheaply.
@@ -245,8 +250,7 @@ Planning helps less when:
 - The environment is **stochastic or non-stationary** — the model may be outdated or wrong.
 - **Real interactions are cheap** — if you can collect millions of samples, model-free methods
   often catch up.
-"""
-        )
+""")
 
     st.divider()
 
@@ -289,20 +293,24 @@ Planning helps less when:
         # ── Cumulative reward ──────────────────────────────────────────
         fig = go.Figure()
         for i, n in enumerate(sorted(selected_ns)):
-            fig.add_trace(go.Scatter(
-                x=list(range(1, total_steps + 1)),
-                y=sweep[n],
-                mode="lines",
-                name=f"n = {n}",
-                line=dict(color=COLOURS[i % len(COLOURS)], width=2),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=list(range(1, total_steps + 1)),
+                    y=sweep[n],
+                    mode="lines",
+                    name=f"n = {n}",
+                    line=dict(color=COLOURS[i % len(COLOURS)], width=2),
+                )
+            )
         fig.update_layout(
             title="Cumulative Reward vs Environment Steps",
             xaxis_title="Environment Steps",
             yaxis_title="Cumulative Reward",
             template="plotly_white",
             height=400,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -310,7 +318,10 @@ Planning helps less when:
         st.subheader("Learned Policy (largest n selected)")
         best_n = max(selected_ns)
         _, _, Q = run_dynaq(best_n, alpha, gamma, epsilon, total_steps)
-        st.plotly_chart(_maze_figure(Q, title=f"Learned Policy (n={best_n})"), use_container_width=True)
+        st.plotly_chart(
+            _maze_figure(Q, title=f"Learned Policy (n={best_n})"),
+            use_container_width=True,
+        )
 
         # ── Summary ────────────────────────────────────────────────────
         st.header("Key Takeaways")
@@ -318,8 +329,11 @@ Planning helps less when:
         for i, n in enumerate(sorted(selected_ns)):
             with metric_cols[i]:
                 total_goals = int(sweep[n][-1])
-                st.metric(f"n = {n}", f"{total_goals} goals reached",
-                          help="Total number of times the agent reached the goal")
+                st.metric(
+                    f"n = {n}",
+                    f"{total_goals} goals reached",
+                    help="Total number of times the agent reached the goal",
+                )
 
         st.info(
             "More planning steps → more goals reached with the same number of real environment "

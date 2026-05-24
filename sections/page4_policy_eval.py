@@ -3,8 +3,10 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from utils.gridworld import (
-    GRID_SIZE, TERMINAL_STATES,
-    solve_random_policy, make_value_heatmap,
+    GRID_SIZE,
+    TERMINAL_STATES,
+    solve_random_policy,
+    make_value_heatmap,
 )
 
 
@@ -14,8 +16,7 @@ def show():
 
     # ── Concept explanation ────────────────────────────────────────────────
     st.header("A New Setting — I Know the Rules")
-    st.markdown(
-        """
+    st.markdown("""
 In the bandit problems, I had to *discover* what the machines paid out through trial and error.
 **Dynamic Programming** is different: I have a complete map of the environment. I know exactly
 where every action takes me and what reward I'll get. The question is no longer *what happens
@@ -47,14 +48,12 @@ number for that action. Then I take the weighted average of those numbers across
 actions according to my policy. The result is the value of the state.
 
 That procedure, written as an equation:
-"""
-    )
+""")
     st.latex(
         r"V^\pi(s) = \sum_a \pi(a|s) \sum_{s',r} p(s', r \mid s, a)"
         r"\left[ r + \gamma V^\pi(s') \right]"
     )
-    st.markdown(
-        """
+    st.markdown("""
 Because the right-hand side contains $V^\\pi$ itself, I can't solve this in one shot.
 Instead, I start with all values at zero and apply this update repeatedly for every state —
 each sweep uses the previous round's values to compute the next. Eventually the values
@@ -65,8 +64,7 @@ stop changing. That's **policy evaluation**: iterate the Bellman update until co
 The Bellman update is a contraction: each sweep brings every value closer to the true $V^\\pi$.
 For episodic tasks like this GridWorld — where every trajectory eventually reaches a terminal
 — the convergence is guaranteed regardless of where I start.
-"""
-    )
+""")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -83,8 +81,7 @@ For episodic tasks like this GridWorld — where every trajectory eventually rea
         )
 
     with st.expander("Deep Dive — In-Place vs Two-Array Updates"):
-        st.markdown(
-            r"""
+        st.markdown(r"""
 The textbook version of policy evaluation uses two arrays: a copy of the old values and the
 new values being computed. This guarantees that each sweep uses only values from the
 *previous* iteration.
@@ -94,8 +91,7 @@ sweeps. The values are still correct at convergence; you just get there sooner b
 later states in the sweep benefit from already-updated earlier states.
 
 Both approaches converge to the same $V^\pi$. This implementation uses in-place updates.
-"""
-        )
+""")
 
     st.divider()
 
@@ -127,35 +123,65 @@ Both approaches converge to the same $V^\pi$. This implementation uses in-place 
         for r in range(GRID_SIZE):
             for c in range(GRID_SIZE):
                 from utils.gridworld import rc_to_state
+
                 s = rc_to_state(r, c)
                 text = "T" if s in TERMINAL_STATES else f"{grid_V[r][c]:.2f}"
-                ann.append(dict(
-                    x=c, y=r, text=text, showarrow=False,
-                    font=dict(size=16 if s not in TERMINAL_STATES else 20, color="black"),
-                    xanchor="center", yanchor="middle",
-                ))
-        fig_heat = make_value_heatmap(V, "V(s) — Random Policy on 4×4 GridWorld", annotations=ann)
+                ann.append(
+                    dict(
+                        x=c,
+                        y=r,
+                        text=text,
+                        showarrow=False,
+                        font=dict(
+                            size=16 if s not in TERMINAL_STATES else 20, color="black"
+                        ),
+                        xanchor="center",
+                        yanchor="middle",
+                    )
+                )
+        fig_heat = make_value_heatmap(
+            V, "V(s) — Random Policy on 4×4 GridWorld", annotations=ann
+        )
         # Add blue borders on terminal states
         for tr, tc in [(0, 0), (3, 3)]:
-            fig_heat.add_shape(type="rect",
-                x0=tc-0.5, x1=tc+0.5, y0=tr-0.5, y1=tr+0.5,
-                line=dict(color="blue", width=3))
+            fig_heat.add_shape(
+                type="rect",
+                x0=tc - 0.5,
+                x1=tc + 0.5,
+                y0=tr - 0.5,
+                y1=tr + 0.5,
+                line=dict(color="blue", width=3),
+            )
         st.plotly_chart(fig_heat, use_container_width=True)
-        st.caption("Blue borders = terminal states (value = 0). Greener = closer to 0 = better.")
+        st.caption(
+            "Blue borders = terminal states (value = 0). Greener = closer to 0 = better."
+        )
 
         # Convergence plot
         fig_conv = go.Figure()
-        fig_conv.add_trace(go.Scatter(
-            x=list(range(1, len(deltas) + 1)), y=deltas,
-            mode="lines+markers", line=dict(color="#636EFA", width=2),
-            marker=dict(size=4), name="Max |ΔV|",
-        ))
-        fig_conv.add_hline(y=float(theta), line_dash="dash", line_color="red",
-                           annotation_text=f"θ = {theta:.0e}")
+        fig_conv.add_trace(
+            go.Scatter(
+                x=list(range(1, len(deltas) + 1)),
+                y=deltas,
+                mode="lines+markers",
+                line=dict(color="#636EFA", width=2),
+                marker=dict(size=4),
+                name="Max |ΔV|",
+            )
+        )
+        fig_conv.add_hline(
+            y=float(theta),
+            line_dash="dash",
+            line_color="red",
+            annotation_text=f"θ = {theta:.0e}",
+        )
         fig_conv.update_layout(
             title="Convergence — Max Change per Sweep",
-            xaxis_title="Sweep", yaxis_title="Max |ΔV|",
-            yaxis_type="log", template="plotly_white", height=350,
+            xaxis_title="Sweep",
+            yaxis_title="Max |ΔV|",
+            yaxis_type="log",
+            template="plotly_white",
+            height=350,
         )
         st.plotly_chart(fig_conv, use_container_width=True)
 
@@ -168,6 +194,7 @@ Both approaches converge to the same $V^\pi$. This implementation uses in-place 
         with col_c:
             worst = int(np.argmin(V))
             from utils.gridworld import state_to_rc
+
             wr, wc = state_to_rc(worst)
             st.metric("Worst state location", f"row {wr}, col {wc}")
 

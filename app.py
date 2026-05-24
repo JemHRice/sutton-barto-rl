@@ -111,64 +111,67 @@ DEEP_SECTIONS = [
         "label": "Section 7 · FA: Prediction",
         "key": "deep_s7",
         "pages": [
-            ("19 — Gradient MC vs Semi-grad TD", "coming_soon"),
-            ("20 — Feature Basis Explorer", "coming_soon"),
-            ("21 — Neural Net Value Approx.", "coming_soon"),
+            ("19 — Gradient MC vs Semi-grad TD", "sections.page19_gradient_mc_td"),
+            ("20 — Feature Basis Explorer", "sections.page20_feature_basis"),
+            ("21 — Neural Net Value Approx.", "sections.page21_nn_value"),
         ],
     },
     {
         "label": "Section 8 · FA: Control",
         "key": "deep_s8",
         "pages": [
-            ("22 — Semi-gradient SARSA", "coming_soon"),
-            ("23 — Mountain Car Solver", "coming_soon"),
-            ("24 — Average vs Discounted Reward", "coming_soon"),
+            ("22 — Semi-gradient SARSA", "sections.page22_semigradient_sarsa"),
+            ("23 — Mountain Car Solver", "sections.page23_mountain_car"),
+            ("24 — Average vs Discounted Reward", "sections.page24_average_reward"),
         ],
     },
     {
         "label": "Section 9 · Off-Policy with FA",
         "key": "deep_s9",
         "pages": [
-            ("25 — IS with Function Approximation", "coming_soon"),
-            ("26 — Deadly Triad Demo", "coming_soon"),
-            ("27 — Gradient TD Methods", "coming_soon"),
+            (
+                "25 — IS with Function Approximation",
+                "sections.page25_importance_sampling",
+            ),
+            ("26 — Deadly Triad Demo", "sections.page26_deadly_triad"),
+            ("27 — Gradient TD Methods", "sections.page27_gradient_td"),
         ],
     },
     {
         "label": "Section 10 · Eligibility Traces",
         "key": "deep_s10",
         "pages": [
-            ("28 — λ-return and TD(λ)", "coming_soon"),
-            ("29 — SARSA(λ)", "coming_soon"),
-            ("30 — Unifying n-step and Traces", "coming_soon"),
+            ("28 — λ-return and TD(λ)", "sections.page28_td_lambda"),
+            ("29 — SARSA(λ)", "sections.page29_sarsa_lambda"),
+            ("30 — Unifying n-step and Traces", "sections.page30_unifying"),
         ],
     },
     {
         "label": "Section 11 · Policy Gradients",
         "key": "deep_s11",
         "pages": [
-            ("31 — REINFORCE", "coming_soon"),
-            ("32 — REINFORCE with Baseline", "coming_soon"),
-            ("33 — Actor-Critic", "coming_soon"),
-            ("34 — PPO/TRPO Conceptual", "coming_soon"),
+            ("31 — REINFORCE", "sections.page31_reinforce"),
+            ("32 — REINFORCE with Baseline", "sections.page32_reinforce_baseline"),
+            ("33 — Actor-Critic", "sections.page33_actor_critic"),
+            ("34 — PPO/TRPO Conceptual", "sections.page34_ppo"),
         ],
     },
     {
         "label": "Section 12 · Applications",
         "key": "deep_s12",
         "pages": [
-            ("35 — TD-Gammon & Game Playing", "coming_soon"),
-            ("36 — Real-World RL Case Studies", "coming_soon"),
-            ("37 — AlphaGo Architecture", "coming_soon"),
+            ("35 — TD-Gammon & Game Playing", "sections.page35_td_gammon"),
+            ("36 — Real-World RL Case Studies", "sections.page36_case_studies"),
+            ("37 — AlphaGo Architecture", "sections.page37_alphago"),
         ],
     },
     {
         "label": "Section 13 · Advanced Topics",
         "key": "deep_s13",
         "pages": [
-            ("38 — Hierarchical RL & Options", "coming_soon"),
-            ("39 — Meta-RL & Exploration", "coming_soon"),
-            ("40 — Multi-Agent & Frontiers", "coming_soon"),
+            ("38 — Hierarchical RL & Options", "sections.page38_hierarchical_rl"),
+            ("39 — Meta-RL & Exploration", "sections.page39_meta_exploration"),
+            ("40 — Multi-Agent & Frontiers", "sections.page40_multiagent_frontiers"),
         ],
     },
 ]
@@ -350,11 +353,13 @@ def show_landing() -> None:
         st.caption("Chapters 9–13 · Requires PyTorch + Gymnasium")
         st.markdown("""
 - Neural Networks Bridge *(available now)*
-- Function Approximation *(coming soon)*
-- Off-Policy Methods *(coming soon)*
-- Eligibility Traces *(coming soon)*
-- Policy Gradients *(coming soon)*
-- Applications & Advanced Topics *(coming soon)*
+- Function Approximation: Prediction *(available now)*
+- Function Approximation: Control *(available now)*
+- Off-Policy Methods with FA *(available now)*
+- Eligibility Traces *(available now)*
+- Policy Gradients *(available now)*
+- Applications & Case Studies *(available now)*
+- Advanced Topics *(coming soon)*
             """)
         if st.button(
             "Enter Deep RL →",

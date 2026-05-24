@@ -1,6 +1,5 @@
 import streamlit as st
 
-
 # ── Content ────────────────────────────────────────────────────────────────
 #
 # Each concept is a dict with keys:
@@ -317,10 +316,423 @@ than random Dyna-Q planning.
             },
         ],
     },
+    {
+        "label": "Section 7 — Function Approximation: Prediction",
+        "concepts": [
+            {
+                "title": "Why We Need Function Approximation",
+                "body": """
+Tabular methods store one value per state, which works when the state space is small but becomes
+impossible when states are continuous or enormous. Function approximation replaces the table with a
+parameterised function that generalises across states, so updating the value of one state
+automatically improves estimates of nearby states. The tradeoff is that the function can only
+represent values in the span of its chosen basis, so some approximation error is irreducible
+regardless of how long training continues.
+""",
+            },
+            {
+                "title": "Gradient Monte Carlo",
+                "body": """
+Gradient Monte Carlo runs full episodes to collect unbiased return estimates and then uses
+gradient descent to update the function approximator's weights toward each observed return.
+Because the target is the actual return and not a bootstrapped estimate, the gradient is exact
+and the method converges to the true minimum of the mean squared value error for linear
+approximators. The cost is that the agent must wait until episode end before any update can
+happen, which makes learning slower per unit of real time and impossible for continuing tasks.
+""",
+            },
+            {
+                "title": "Semi-gradient TD(0)",
+                "body": """
+Semi-gradient TD(0) updates the approximator's weights after every step using a bootstrapped
+target of the current reward plus the discounted estimated value of the next state. Since this
+target itself depends on the current weights, taking the full gradient of the loss would require
+differentiating through the target — instead, the target is treated as a constant and only the
+gradient of the predicted value is used, which is why the method is called semi-gradient. For
+linear approximators this still converges, but to a TD fixed point rather than the true MSVE
+minimum, meaning there is some residual bias that cannot be eliminated even with infinite data.
+""",
+            },
+            {
+                "title": "Choosing a Feature Basis",
+                "body": """
+The feature basis determines the class of functions that can be represented at all. State
+aggregation partitions states into groups and produces a staircase approximation that cannot
+capture smooth gradients within a group. Polynomial features can fit smooth curves but can
+oscillate badly at high degree. Fourier cosine features are orthogonal, smooth, and excel at
+representing functions with gradual or periodic structure, often outperforming polynomials at
+equal feature count. Radial basis functions place Gaussian bumps at fixed centres and provide
+local generalisation, so updating one region does not change distant regions. The best basis
+depends on the known structure of the value function being approximated.
+""",
+            },
+            {
+                "title": "Neural Networks as Non-linear Approximators",
+                "body": """
+A multi-layer perceptron with nonlinear activations can represent a much richer class of
+functions than any fixed linear basis, and back-propagation automatically computes gradients
+through any depth. With gradient Monte Carlo the convergence guarantee that holds for linear
+approximators extends in principle to neural networks because the target is unbiased, though
+in practice training is more sensitive to learning rate and architecture. Combining neural
+networks with bootstrapped targets such as TD(0) breaks the convergence guarantee for
+prediction and creates the risk of divergence known as the deadly triad, which motivates
+the stabilisation techniques used in deep RL such as experience replay and target networks.
+""",
+            },
+        ],
+    },
+    {
+        "label": "Section 8 — Function Approximation: Control",
+        "concepts": [
+            {
+                "title": "Semi-gradient SARSA for Control",
+                "body": """
+Extending function approximation from prediction to control replaces the state-value function
+with an action-value function that takes both the state and the chosen action as input. Semi-
+gradient SARSA applies the on-policy TD update to these approximate action values, using the
+next chosen action to form the bootstrapped target. For linear approximators combined with on-
+policy data, this remains stable because the update distribution matches the behaviour, and the
+method converges to the action-value TD fixed point rather than the true optimum, but the
+resulting greedy policy is often close to optimal in practice.
+""",
+            },
+            {
+                "title": "Tile Coding for Continuous States",
+                "body": """
+Tile coding is a hand-crafted feature basis for continuous state spaces that uses multiple
+overlapping grids called tilings, each covering the full space with a rectangular grid of tiles.
+For any given state exactly one tile per tiling is active, giving a sparse binary feature vector
+of length equal to the total number of tiles across all tilings. Because the features are binary,
+computing the approximate value is a fast sum of the active weights rather than a dot product.
+Overlapping tilings with asymmetric offsets ensure that nearby states share some tiles but not
+all, providing smooth generalisation without sharp discontinuities at tile boundaries.
+""",
+            },
+            {
+                "title": "Mountain Car and Sparse Rewards",
+                "body": """
+Mountain Car is the canonical benchmark for continuous-state control with sparse rewards because
+the car receives only minus one per step and the optimal solution requires the counter-intuitive
+strategy of first reversing to build kinetic energy before accelerating toward the goal. With
+zero Q-values at initialisation and no positive reinforcement until the goal is actually reached,
+early episodes rely entirely on random exploration to stumble on the goal state and propagate
+that reward signal backward. Once even a small portion of the Q-values near the goal become
+negative rather than zero, the agent can begin following a consistent policy toward them and
+learning accelerates substantially.
+""",
+            },
+            {
+                "title": "Average Reward for Continuing Tasks",
+                "body": """
+Discounted return with gamma less than one is designed for episodic tasks and when applied to
+continuing tasks it implicitly limits the agent's planning horizon to roughly one over one minus
+gamma steps, which can cause suboptimal behaviour if that horizon is shorter than important
+delayed consequences. The average reward formulation instead optimises the long-run reward per
+step with no discounting, and the differential TD error subtracts the running estimate of average
+reward from each reward signal before bootstrapping. This centres the updates around zero on
+average, ensuring stability, and converges to the true average-reward optimum for linear
+approximators on ergodic continuing tasks where every state is eventually visited under any
+reasonable policy.
+""",
+            },
+        ],
+    },
+    {
+        "label": "Section 9 — Off-Policy Methods with Function Approximation",
+        "concepts": [
+            {
+                "title": "Importance Sampling with Function Approximation",
+                "body": """
+Off-policy learning uses experience generated by a behaviour policy b to evaluate or improve a
+different target policy pi. With tabular methods, importance sampling weights each return by the
+product of per-step ratios rho equal to pi of the action divided by b of the action. With function
+approximation, the per-step ratio is folded directly into the semi-gradient update: the weight
+increment is multiplied by rho before being applied. This re-weights the update distribution from
+the behaviour distribution to the target distribution in expectation, giving an unbiased estimate
+of the gradient of the value function under pi. The cost is higher variance, since large rho values
+amplify individual updates and can cause erratic behaviour when pi and b differ substantially.
+""",
+            },
+            {
+                "title": "The Deadly Triad",
+                "body": """
+Three conditions individually permit convergent reinforcement learning algorithms, but combining
+all three simultaneously can cause divergence. Function approximation means the value function
+is represented by a parameterised family such as a neural network or linear combination of
+features and cannot represent all value functions exactly. Bootstrapping means the update target
+depends on the current estimate of the value function rather than on observed returns, as in TD
+methods. Off-policy training means the distribution of states used in updates is generated by a
+behaviour policy different from the one being evaluated. When all three are present, the update
+operator is no longer a contraction and weights can grow without bound. Baird's counterexample
+is the minimal known MDP that triggers this divergence with linear function approximation.
+""",
+            },
+            {
+                "title": "Gradient TD Methods (TDC and GTD2)",
+                "body": """
+Semi-gradient TD is not a true gradient method because it ignores the gradient of the bootstrap
+target. Gradient TD methods instead minimise the Mean Squared Projected Bellman Error, which is a
+well-defined scalar objective whose gradient is computable. TDC adds a correction term to the
+semi-gradient update that involves a secondary weight vector h converging to the product of the
+inverse feature covariance matrix and the expected TD error vector. At each step the primary
+weights w are updated with a corrected gradient and the secondary weights h are updated with a
+simple residual gradient step using a smaller step size beta. The result is an algorithm that
+converges to the MSPBE minimum for linear function approximation even when all three deadly triad
+conditions are active, at the cost of tracking an additional d-dimensional vector and tuning a
+second learning rate.
+""",
+            },
+        ],
+    },
+    {
+        "label": "Section 10 — Eligibility Traces",
+        "concepts": [
+            {
+                "title": "Eligibility Traces and the λ-Return",
+                "body": """
+An eligibility trace is a short-term memory vector z of the same dimension as the weight vector
+that accumulates the recent history of feature activations. At each step the trace decays by
+gamma times lambda and the current feature vector is added to it. When a TD error is computed,
+the weight update is proportional to delta times z rather than delta times the current feature
+vector alone. This means that all recently active features receive a share of the credit for the
+current error, with the share decaying geometrically the further back in time the feature was
+active. The effective depth of credit assignment is approximately one over one minus gamma lambda
+steps, so lambda equal to zero gives pure one-step TD and lambda equal to one gives Monte Carlo.
+The lambda-return is the forward-view equivalent: a geometric mixture of all n-step returns
+weighted by lambda to the power of n minus one. Eligibility traces compute this mixture online
+in constant memory rather than storing the full trajectory.
+""",
+            },
+            {
+                "title": "SARSA(λ) — Traces for Control",
+                "body": """
+SARSA(λ) extends TD(λ) to action-value function approximation by maintaining one eligibility
+trace vector per action. At each step, the trace for the selected action is updated with the
+current feature vector while all action traces decay by gamma lambda. The semi-gradient update
+applies the TD error multiplied by the trace to the weights of every action. Replacing traces
+are preferred for tile-coded features: instead of accumulating the feature vector into the
+trace, active components are clamped to one. This prevents the trace from growing large when
+the same tile is activated repeatedly within a single episode, which is common in tasks like
+Mountain Car where the agent may oscillate before finding the goal. Replacing traces typically
+converge faster and more stably than accumulating traces in control tasks.
+""",
+            },
+            {
+                "title": "Unifying n-step Returns and Eligibility Traces",
+                "body": """
+n-step TD and TD(λ) both interpolate between one-step TD and Monte Carlo returns and achieve
+similar performance when their effective horizons are matched through the equivalence n
+approximately equal to one over one minus lambda. The key practical advantage of eligibility
+traces is memory and computational efficiency: n-step methods must store the last n transitions
+and can only update weights n steps after an experience is observed, while traces require only
+one extra d-dimensional vector and update weights at every step. For online learning and
+streaming data, eligibility traces are therefore the preferred implementation. The
+forward-view and backward-view are mathematically equivalent for on-policy linear TD but
+diverge for off-policy settings, where corrections such as Retrace(λ) are needed to maintain
+convergence while controlling the variance of importance sampling ratios.
+""",
+            },
+        ],
+    },
+    {
+        "label": "Section 11 — Policy Gradients",
+        "concepts": [
+            {
+                "title": "REINFORCE — Monte Carlo Policy Gradient",
+                "body": """
+Rather than learning a value function and deriving a policy from it, REINFORCE directly
+parameterises the policy and optimises it by gradient ascent on expected return. The Policy
+Gradient Theorem gives the gradient as an expectation of the log probability of the chosen
+action multiplied by the total return from that step onward. REINFORCE estimates this
+expectation from a single complete episode, making it a Monte Carlo method. Because the
+return is an unbiased sample of the true action value, the gradient estimate has no bias,
+but it has very high variance because a single episode can have wildly different outcomes
+depending on random transitions and the stochasticity of the policy itself.
+""",
+            },
+            {
+                "title": "REINFORCE with Baseline",
+                "body": """
+Adding a baseline to the REINFORCE update subtracts a state-dependent value from the
+return before multiplying by the log probability gradient. Because the expected value of
+the log probability over all actions is zero, the baseline does not change the expected
+gradient direction, but it can dramatically reduce its variance. Using a learned state
+value function as the baseline means the policy update is weighted by how much better the
+chosen action turned out to be compared to what was expected on average from that state.
+Actions that exceeded expectations get reinforced and actions that fell short get
+suppressed, even if the overall episode was profitable, which produces a cleaner credit
+assignment signal than the raw return.
+""",
+            },
+            {
+                "title": "Actor-Critic",
+                "body": """
+Actor-Critic replaces the Monte Carlo return used in REINFORCE with a one-step TD
+bootstrap: the immediate reward plus the discounted estimated value of the next state
+minus the estimated value of the current state. This TD error serves as a biased but
+lower-variance estimate of the advantage, allowing the policy to be updated after every
+single step rather than at episode end. The critic network is trained to minimise the TD
+error and thereby provide better advantage estimates for the actor. Compared with
+REINFORCE, Actor-Critic typically learns faster because each transition produces an
+immediate update, but the bootstrapped advantage is biased since the value estimates are
+initially inaccurate, so the policy can be misled early in training.
+""",
+            },
+            {
+                "title": "PPO — Proximal Policy Optimisation",
+                "body": """
+Vanilla policy gradient methods can take a destructively large update step if the gradient
+happens to point strongly in one direction for a given batch of data, collapsing the
+policy to a degenerate distribution from which recovery is slow. PPO prevents this by
+clipping the probability ratio between the new and old policy before multiplying by the
+advantage, so the objective becomes flat once the ratio moves outside a narrow interval
+around one. This means that even if the gradient points strongly toward a large update,
+the objective saturates and the gradient signal cuts off, keeping the policy within a
+trust region. In practice PPO uses multiple passes of gradient descent on each batch of
+collected transitions, the generalised advantage estimator for lower-variance advantage
+estimates, and a shared actor-critic architecture, making it the dominant policy gradient
+algorithm for complex environments including game playing and language model fine-tuning.
+""",
+            },
+        ],
+    },
+    {
+        "label": "Section 12 — Applications and Case Studies",
+        "concepts": [
+            {
+                "title": "TD-Gammon and Self-Play",
+                "body": """
+TD-Gammon demonstrated in 1992 that a neural network trained by TD self-play could reach
+world-class performance in backgammon without any human-designed evaluation function. The
+system used TD lambda with a small multilayer perceptron whose output was the estimated
+probability of winning from a given board position. Self-play naturally provides an
+infinite supply of on-policy training data and an automatically calibrated opponent,
+since the agent always faces an opponent at its own current skill level. Backgammon was
+particularly well-suited because the dice rolls provide stochastic forced exploration,
+ensuring that training data covers diverse board states. The success of TD-Gammon directly
+inspired AlphaGo and AlphaZero, which extended the same self-play paradigm to Go using
+Monte Carlo Tree Search for lookahead.
+""",
+            },
+            {
+                "title": "AlphaGo — Combining Search with Learned Knowledge",
+                "body": """
+Go has a branching factor of around 250 and game lengths of over 150 moves, making
+exhaustive tree search completely infeasible. AlphaGo solved this by using neural networks
+to reduce both the breadth and depth of Monte Carlo Tree Search. A policy network trained
+first by supervised learning on expert moves and then fine-tuned by policy gradient
+self-play provides move priors that concentrate search on promising actions, reducing
+effective branching. A value network trained on self-play outcomes evaluates board positions
+without simulating to game end, reducing effective depth. MCTS combines these using the
+PUCT formula to balance exploitation of high-value actions with exploration of
+high-prior low-visit actions. AlphaGo Zero later removed the supervised learning phase
+entirely, training a single combined policy-value network from scratch through self-play
+and surpassing the original AlphaGo in three days.
+""",
+            },
+            {
+                "title": "Scaling RL — From Games to Language",
+                "body": """
+The progression from TD-Gammon to modern systems traces a thirty-year arc of algorithmic
+advances and scaling. Deep Q-Networks extended tabular TD to raw pixel inputs using
+experience replay and target networks to stabilise training against the deadly triad.
+Policy gradient methods scaled further by operating on continuous action spaces and
+directly optimising parameterised policies. PPO became the dominant algorithm for
+real-time multi-agent games like Dota 2 and StarCraft II, where the action space is too
+large for value-based methods. Reinforcement learning from human feedback applied PPO to
+language model fine-tuning, using a reward model trained on human preference comparisons
+as the reward signal. At each stage the core algorithmic ideas remained recognisable
+descendants of what is covered in Sutton and Barto, with engineering for stability and
+scale as the primary differentiator.
+""",
+            },
+        ],
+    },
+    {
+        "label": "Section 13 — Advanced Topics",
+        "concepts": [
+            {
+                "title": "Hierarchical RL and the Options Framework",
+                "body": """
+Standard RL agents choose one primitive action per step, which means that rewards hundreds
+of steps away must propagate through hundreds of individual updates before the early actions
+that caused them receive any useful credit signal. Hierarchical RL breaks this by introducing
+temporally extended actions called options, each consisting of an initiation set specifying
+where the option can start, an intra-option policy that selects primitive actions for as long
+as the option runs, and a termination condition that decides when the option ends. When a
+high-level agent invokes an option it receives a single lumped reward and transition after
+potentially many primitive steps, so the credit assignment distance shrinks dramatically.
+The canonical four-rooms problem illustrates this: without options the agent must bridge the
+full chain of primitive steps between rooms, but with doorway-navigation options it only
+needs to learn a three-decision chain regardless of how many steps each option takes.
+Intra-option Q-learning extends credit further by updating option values during execution
+rather than only at termination, and learned option methods such as Option-Critic discover
+useful sub-goals automatically from self-play without domain knowledge.
+""",
+            },
+            {
+                "title": "Count-Based Exploration and Intrinsic Motivation",
+                "body": """
+The exploration-exploitation tradeoff becomes much harder in large state spaces because
+epsilon-greedy exploration is undirected and will repeatedly revisit familiar states without
+any memory of what has already been seen. Count-based exploration adds an intrinsic reward
+equal to beta divided by the square root of the visit count for the reached state, which
+gives a large bonus for genuinely novel states and a decaying bonus as states are revisited.
+This automatically directs the agent toward unexplored regions without requiring a separate
+exploration schedule. When states are continuous and exact counts are always one, pseudo-count
+methods use a density model to estimate how familiar the agent is with a region of state
+space and compute a generalised count from that density. The Intrinsic Curiosity Module takes
+a different approach by using the prediction error of a learned forward dynamics model as the
+novelty signal, which generalises across visually similar states through the shared embedding.
+Random Network Distillation achieves similar results more simply by measuring how well a
+trained predictor network matches a fixed random target network, with high prediction error
+indicating states that the predictor has not been trained on enough, which is precisely the
+states that have been visited least.
+""",
+            },
+            {
+                "title": "Meta-RL — Learning to Explore",
+                "body": """
+Rather than designing a fixed exploration strategy such as epsilon-greedy or a specific
+intrinsic bonus, meta-RL aims to learn an exploration policy from experience across many
+related tasks so that the agent adapts its exploration to the structure of new tasks it
+encounters. RL-squared trains a recurrent policy across a distribution of tasks and finds
+that the hidden state naturally develops an adaptive exploration strategy where the agent
+explores broadly early in an episode and exploits more aggressively as it accumulates
+evidence about the current task. MAML optimises network parameters so that a single gradient
+step adapts them to a new task, effectively learning a prior over tasks that makes individual
+tasks easy to fine-tune. The key distinction from intrinsic motivation is that meta-RL learns
+what to explore given task structure, rather than simply rewarding novelty regardless of
+whether that novelty is relevant to the current objective.
+""",
+            },
+            {
+                "title": "Multi-Agent RL and Game Theory",
+                "body": """
+When multiple learning agents share an environment, each agent's changing policy makes the
+environment non-stationary from every other agent's perspective, breaking the convergence
+guarantees that single-agent Q-learning relies on. Game theory provides the solution concept:
+a Nash equilibrium is a joint policy where no agent can unilaterally improve its payoff by
+deviating, and self-play methods like those used in AlphaGo Zero converge to approximate
+Nash equilibria by training each agent against copies of itself. Independent Q-learning, where
+each agent runs its own Q-learning while ignoring the others, is the simplest approach and
+works in practice despite lacking theoretical guarantees. Centralised training with
+decentralised execution resolves the non-stationarity problem by giving each agent a critic
+that sees the joint observation during training but acting on local observations at deployment,
+enabling efficient credit assignment without requiring communication at test time. The
+iterated prisoner's dilemma illustrates the social dilemma structure that pervades multi-agent
+problems: individually rational behaviour leads to collectively worse outcomes, but strategies
+like Tit-for-Tat that reward cooperation and retaliate against defection can sustain
+cooperation when they form a sufficient fraction of the population.
+""",
+            },
+        ],
+    },
 ]
 
 
 # ── Page ───────────────────────────────────────────────────────────────────
+
 
 def show():
     st.title("Summary — Key Concepts")

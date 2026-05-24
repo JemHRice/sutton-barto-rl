@@ -4,10 +4,14 @@ import streamlit as st
 from plotly.subplots import make_subplots
 
 from utils.gridworld import (
-    GRID_SIZE, TERMINAL_STATES,
-    rc_to_state, ACTION_ARROWS,
-    solve_value_iteration, solve_policy_iteration,
-    policy_to_arrow_grid, make_value_heatmap,
+    GRID_SIZE,
+    TERMINAL_STATES,
+    rc_to_state,
+    ACTION_ARROWS,
+    solve_value_iteration,
+    solve_policy_iteration,
+    policy_to_arrow_grid,
+    make_value_heatmap,
 )
 
 
@@ -17,8 +21,7 @@ def show():
 
     # ── Concept explanation ────────────────────────────────────────────────
     st.header("Skipping the Inner Loop")
-    st.markdown(
-        """
+    st.markdown("""
 Policy iteration works, but it has a cost: before I can improve the policy, I have to evaluate
 it *completely* — running sweeps until convergence. That inner evaluation loop can take many
 sweeps, especially early on when the policy is far from optimal.
@@ -30,13 +33,9 @@ Instead of averaging over my policy, I just take the **maximum over all actions*
 state, I ask: *what's the best total return I could get from here if I acted optimally?*
 
 That's the **Bellman optimality equation**:
-"""
-    )
-    st.latex(
-        r"V_{k+1}(s) = \max_a \left[ r(s,a) + \gamma V_k(s') \right]"
-    )
-    st.markdown(
-        """
+""")
+    st.latex(r"V_{k+1}(s) = \max_a \left[ r(s,a) + \gamma V_k(s') \right]")
+    st.markdown("""
 I apply this update to every state, over and over, until the values stop changing.
 At convergence, I have $V^*$ — the optimal value function. I then extract the optimal
 policy in a single greedy pass: for each state, pick whichever action achieved the max.
@@ -54,8 +53,7 @@ Value iteration fuses them into one:
 There's no inner loop at all. Each sweep does a little of both evaluation and improvement
 simultaneously. The trade-off is that value iteration may need more total sweeps to converge —
 but each sweep is cheap, and there's no overhead managing the inner evaluation loop.
-"""
-    )
+""")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -71,8 +69,7 @@ but each sweep is cheap, and there's no overhead managing the inner evaluation l
         )
 
     with st.expander("Deep Dive — Bellman Optimality Equations"):
-        st.markdown(
-            r"""
+        st.markdown(r"""
 The full Bellman optimality equations for $V^*$ and $Q^*$:
 
 $$V^*(s) = \max_a \mathbb{E}\bigl[R_{t+1} + \gamma V^*(S_{t+1}) \mid S_t=s, A_t=a\bigr]$$
@@ -86,8 +83,7 @@ of $\max_{a'} Q(s', a')$. That's the jump from model-based DP to model-free RL.
 Both equations involve a $\max$ operator, making them nonlinear. Despite this, the Bellman
 optimality operator is still a contraction in the $\ell_\infty$ norm (for $\gamma < 1$),
 guaranteeing a unique fixed point $V^*$.
-"""
-        )
+""")
 
     st.divider()
 
@@ -161,33 +157,49 @@ guaranteeing a unique fixed point $V^*$.
 
         vi_sweeps = len(vi_deltas)
         fig_bar = go.Figure()
-        fig_bar.add_trace(go.Bar(
-            x=["Value Iteration", "Policy Iteration"],
-            y=[vi_sweeps, pi_total_sweeps],
-            marker_color=["#636EFA", "#EF553B"],
-            text=[str(vi_sweeps), str(pi_total_sweeps)],
-            textposition="auto",
-        ))
+        fig_bar.add_trace(
+            go.Bar(
+                x=["Value Iteration", "Policy Iteration"],
+                y=[vi_sweeps, pi_total_sweeps],
+                marker_color=["#636EFA", "#EF553B"],
+                text=[str(vi_sweeps), str(pi_total_sweeps)],
+                textposition="auto",
+            )
+        )
         fig_bar.update_layout(
             title="Total Bellman Update Sweeps to Convergence",
-            xaxis_title="Algorithm", yaxis_title="Sweeps",
-            template="plotly_white", height=350,
+            xaxis_title="Algorithm",
+            yaxis_title="Sweeps",
+            template="plotly_white",
+            height=350,
         )
         st.plotly_chart(fig_bar, use_container_width=True)
 
         # VI delta plot
         fig_conv = go.Figure()
-        fig_conv.add_trace(go.Scatter(
-            x=list(range(1, vi_sweeps + 1)), y=vi_deltas,
-            mode="lines+markers", name="VI max |ΔV|",
-            line=dict(color="#636EFA", width=2), marker=dict(size=4),
-        ))
-        fig_conv.add_hline(y=float(theta), line_dash="dash", line_color="red",
-                           annotation_text=f"θ = {theta:.0e}")
+        fig_conv.add_trace(
+            go.Scatter(
+                x=list(range(1, vi_sweeps + 1)),
+                y=vi_deltas,
+                mode="lines+markers",
+                name="VI max |ΔV|",
+                line=dict(color="#636EFA", width=2),
+                marker=dict(size=4),
+            )
+        )
+        fig_conv.add_hline(
+            y=float(theta),
+            line_dash="dash",
+            line_color="red",
+            annotation_text=f"θ = {theta:.0e}",
+        )
         fig_conv.update_layout(
             title="Value Iteration — Convergence per Sweep",
-            xaxis_title="Sweep", yaxis_title="Max |ΔV|",
-            yaxis_type="log", template="plotly_white", height=320,
+            xaxis_title="Sweep",
+            yaxis_title="Max |ΔV|",
+            yaxis_type="log",
+            template="plotly_white",
+            height=320,
         )
         st.plotly_chart(fig_conv, use_container_width=True)
 
@@ -227,13 +239,19 @@ guaranteeing a unique fixed point $V^*$.
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
+
 @st.cache_data
 def _count_pi_sweeps(theta: float) -> int:
     """Recount total inner-loop evaluation sweeps from policy iteration."""
     from utils.gridworld import (
-        N_STATES, TERMINAL_STATES, GAMMA,
-        next_state_reward, initial_policy, N_ACTIONS,
+        N_STATES,
+        TERMINAL_STATES,
+        GAMMA,
+        next_state_reward,
+        initial_policy,
+        N_ACTIONS,
     )
+
     policy = initial_policy()
     total = 0
     for _ in range(100):
@@ -254,8 +272,10 @@ def _count_pi_sweeps(theta: float) -> int:
         for s in range(N_STATES):
             if s in TERMINAL_STATES:
                 continue
-            q = [next_state_reward(s, a)[1] + GAMMA * V[next_state_reward(s, a)[0]]
-                 for a in range(N_ACTIONS)]
+            q = [
+                next_state_reward(s, a)[1] + GAMMA * V[next_state_reward(s, a)[0]]
+                for a in range(N_ACTIONS)
+            ]
             new_policy[s] = int(np.argmax(q))
         if np.array_equal(policy, new_policy):
             break

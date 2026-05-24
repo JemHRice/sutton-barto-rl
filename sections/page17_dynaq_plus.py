@@ -2,7 +2,6 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 
-
 # ── Maze definitions ───────────────────────────────────────────────────────
 
 MAZE_H, MAZE_W = 6, 9
@@ -21,9 +20,11 @@ def _s_to_rc(s):
 
 
 # Blocking maze: wall blocks the only path at step CHANGE_STEP
-BLOCKING_WALLS_BEFORE = {(_rc_to_s(3, c), ) for c in range(0, 8)}  # row 3, cols 0-7
+BLOCKING_WALLS_BEFORE = {(_rc_to_s(3, c),) for c in range(0, 8)}  # row 3, cols 0-7
 BLOCKING_WALLS_BEFORE = {(3, c) for c in range(0, 8)}
-BLOCKING_WALLS_AFTER = {(3, c) for c in range(1, 9)}  # wall shifts right, now blocks old path
+BLOCKING_WALLS_AFTER = {
+    (3, c) for c in range(1, 9)
+}  # wall shifts right, now blocks old path
 
 # Shortcut maze: shortcut opens at step CHANGE_STEP
 SHORTCUT_WALLS_BEFORE = {(3, c) for c in range(1, 9)}
@@ -42,10 +43,12 @@ def _make_step_fn(walls: set) -> callable:
         next_state = _rc_to_s(nr, nc)
         done = (nr, nc) == GOAL
         return next_state, 1.0 if done else 0.0, done
+
     return step
 
 
 # ── Dyna-Q ─────────────────────────────────────────────────────────────────
+
 
 def _run_dynaq_changing(
     walls_before: set,
@@ -110,9 +113,7 @@ def _run_dynaq_changing(
             if kappa > 0:
                 tau = time_since.get((s_p, a_p), 0)
                 r_p = r_p + kappa * np.sqrt(tau)
-            Q[s_p, a_p] += alpha * (
-                r_p + gamma * np.max(Q[ns_p]) - Q[s_p, a_p]
-            )
+            Q[s_p, a_p] += alpha * (r_p + gamma * np.max(Q[ns_p]) - Q[s_p, a_p])
 
         cumulative[step] = reward if step == 0 else cumulative[step - 1] + reward
 
@@ -144,10 +145,24 @@ def run_comparison(
         walls_after = SHORTCUT_WALLS_AFTER
 
     dq = _run_dynaq_changing(
-        walls_before, walls_after, n_planning, alpha, gamma, epsilon, total_steps, kappa=0.0
+        walls_before,
+        walls_after,
+        n_planning,
+        alpha,
+        gamma,
+        epsilon,
+        total_steps,
+        kappa=0.0,
     )
     dq_plus = _run_dynaq_changing(
-        walls_before, walls_after, n_planning, alpha, gamma, epsilon, total_steps, kappa=kappa
+        walls_before,
+        walls_after,
+        n_planning,
+        alpha,
+        gamma,
+        epsilon,
+        total_steps,
+        kappa=kappa,
     )
     return dq, dq_plus
 
@@ -155,7 +170,7 @@ def run_comparison(
 def _walls_figure(walls: set, title: str) -> go.Figure:
     z = [[0.3] * MAZE_W for _ in range(MAZE_H)]
     text = [["·"] * MAZE_W for _ in range(MAZE_H)]
-    for (r, c) in walls:
+    for r, c in walls:
         z[r][c] = 0.0
         text[r][c] = "■"
     gr, gc = GOAL
@@ -165,12 +180,20 @@ def _walls_figure(walls: set, title: str) -> go.Figure:
     z[sr][sc] = 0.5
     text[sr][sc] = "S"
 
-    fig = go.Figure(go.Heatmap(
-        z=z, text=text, texttemplate="%{text}",
-        colorscale="Blues", showscale=False, zmin=0, zmax=1,
-    ))
+    fig = go.Figure(
+        go.Heatmap(
+            z=z,
+            text=text,
+            texttemplate="%{text}",
+            colorscale="Blues",
+            showscale=False,
+            zmin=0,
+            zmax=1,
+        )
+    )
     fig.update_layout(
-        title=title, height=200,
+        title=title,
+        height=200,
         margin=dict(l=5, r=5, t=35, b=5),
         template="plotly_white",
         xaxis=dict(showticklabels=False),
@@ -181,14 +204,14 @@ def _walls_figure(walls: set, title: str) -> go.Figure:
 
 # ── Page ───────────────────────────────────────────────────────────────────
 
+
 def show():
     st.title("Dyna-Q vs Dyna-Q+: Changing Environments")
     st.markdown("**Section 6 — Planning and Learning · Chapter 8**")
 
     # ── Concept ───────────────────────────────────────────────────────────
     st.header("When the World Changes")
-    st.markdown(
-        """
+    st.markdown("""
 Dyna-Q assumes the environment is **stationary** — the model it builds is always correct.
 But real environments change. If a maze is restructured mid-training, Dyna-Q's model becomes
 stale and it may keep planning using the old, incorrect transitions.
@@ -197,12 +220,9 @@ stale and it may keep planning using the old, incorrect transitions.
 *not been tried recently* get a bonus reward added to their simulated experience. This
 encourages the agent to re-explore parts of the environment it hasn't visited in a while,
 allowing it to detect and adapt to changes.
-"""
-    )
+""")
 
-    st.latex(
-        r"r^+ = r + \kappa \sqrt{\tau(s, a)}"
-    )
+    st.latex(r"r^+ = r + \kappa \sqrt{\tau(s, a)}")
     st.markdown(
         r"where $\tau(s, a)$ is the number of steps since state-action pair $(s, a)$ was last "
         r"tried, and $\kappa$ is a small bonus coefficient. Rarely-visited pairs get a larger "
@@ -216,8 +236,7 @@ allowing it to detect and adapt to changes.
     )
 
     with st.expander("Deep Dive — Two Types of Change"):
-        st.markdown(
-            """
+        st.markdown("""
 **Blocking maze:** an initially open path becomes blocked mid-training. Dyna-Q may keep
 trying the now-blocked path because its model says it leads somewhere good. Dyna-Q+ will
 notice that it hasn't visited those states recently and explore, discovering the block.
@@ -228,8 +247,7 @@ unexplored regions, making it much more likely to discover — and then exploit 
 
 This is why exploration bonuses are a form of **intrinsic motivation**: the agent is
 rewarded not just for external task rewards but for novelty and revisiting uncertain areas.
-"""
-        )
+""")
 
     st.divider()
 
@@ -242,7 +260,7 @@ rewarded not just for external task rewards but for novelty and revisiting uncer
             "Maze type",
             ["Blocking Maze", "Shortcut Maze"],
             help="Blocking: open path becomes blocked at step 3000. "
-                 "Shortcut: new shorter path opens at step 3000.",
+            "Shortcut: new shorter path opens at step 3000.",
         )
         total_steps = st.slider("Total steps", 2000, 10000, 6000, 500)
         n_planning = st.slider("Planning steps (n)", 1, 50, 10)
@@ -250,9 +268,15 @@ rewarded not just for external task rewards but for novelty and revisiting uncer
         alpha = st.slider("α (step size)", 0.1, 1.0, 0.5, 0.05)
         gamma = st.slider("γ (discount)", 0.9, 1.0, 0.95, 0.01)
         epsilon = st.slider("ε (exploration)", 0.01, 0.3, 0.1, 0.01)
-        kappa = st.slider("κ (exploration bonus coefficient)", 0.001, 0.1, 0.01, 0.001,
-                          format="%.3f",
-                          help="Scales the √τ bonus. Larger κ → more re-exploration.")
+        kappa = st.slider(
+            "κ (exploration bonus coefficient)",
+            0.001,
+            0.1,
+            0.01,
+            0.001,
+            format="%.3f",
+            help="Scales the √τ bonus. Larger κ → more re-exploration.",
+        )
 
     # ── Maze previews ──────────────────────────────────────────────────────
     st.subheader("Environment Layout")
@@ -261,16 +285,22 @@ rewarded not just for external task rewards but for novelty and revisiting uncer
         change_desc = "A path is **blocked** at step 3,000, forcing the agent to find a new route."
     else:
         walls_b, walls_a = SHORTCUT_WALLS_BEFORE, SHORTCUT_WALLS_AFTER
-        change_desc = "A **shortcut** opens at step 3,000 — Dyna-Q+ should discover it faster."
+        change_desc = (
+            "A **shortcut** opens at step 3,000 — Dyna-Q+ should discover it faster."
+        )
 
     st.caption(change_desc)
     map_col1, map_col2 = st.columns(2)
     with map_col1:
-        st.plotly_chart(_walls_figure(walls_b, "Before change (steps 0–3000)"),
-                        use_container_width=True)
+        st.plotly_chart(
+            _walls_figure(walls_b, "Before change (steps 0–3000)"),
+            use_container_width=True,
+        )
     with map_col2:
-        st.plotly_chart(_walls_figure(walls_a, "After change (steps 3000+)"),
-                        use_container_width=True)
+        st.plotly_chart(
+            _walls_figure(walls_a, "After change (steps 3000+)"),
+            use_container_width=True,
+        )
 
     if st.button("Run Comparison", type="primary"):
         with st.spinner("Running Dyna-Q and Dyna-Q+..."):
@@ -282,18 +312,28 @@ rewarded not just for external task rewards but for novelty and revisiting uncer
 
         x = list(range(1, total_steps + 1))
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=x, y=dq,
-            mode="lines", name="Dyna-Q",
-            line=dict(color="#636EFA", width=2),
-        ))
-        fig.add_trace(go.Scatter(
-            x=x, y=dq_plus,
-            mode="lines", name="Dyna-Q+",
-            line=dict(color="#EF553B", width=2),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=dq,
+                mode="lines",
+                name="Dyna-Q",
+                line=dict(color="#636EFA", width=2),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=dq_plus,
+                mode="lines",
+                name="Dyna-Q+",
+                line=dict(color="#EF553B", width=2),
+            )
+        )
         fig.add_vline(
-            x=CHANGE_STEP, line_dash="dash", line_color="gray",
+            x=CHANGE_STEP,
+            line_dash="dash",
+            line_color="gray",
             annotation_text="Environment changes",
             annotation_position="top right",
         )
@@ -303,7 +343,9 @@ rewarded not just for external task rewards but for novelty and revisiting uncer
             yaxis_title="Cumulative Reward",
             template="plotly_white",
             height=420,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+            ),
         )
         st.plotly_chart(fig, use_container_width=True)
 
