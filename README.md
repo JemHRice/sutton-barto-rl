@@ -113,40 +113,35 @@ The app opens at `http://localhost:8501`.
 
 > Deep RL sections require `pip install torch gymnasium`
 
-#### Section 7 — Function Approximation: Prediction (Chapter 9) — *coming soon*
-
+#### Section 7 — Function Approximation: Prediction (Chapter 9)
 | Page | Topic |
 |------|-------|
 | 19 | Gradient MC vs Semi-gradient TD with feature basis selector |
 | 20 | Feature Basis Explorer: tile coding, RBF, Fourier basis |
 | 21 | Neural Network Value Approximator with PyTorch |
 
-#### Section 8 — Function Approximation: Control (Chapter 10) — *coming soon*
-
+#### Section 8 — Function Approximation: Control (Chapter 10)
 | Page | Topic |
 |------|-------|
 | 22 | Semi-gradient SARSA on Mountain Car |
 | 23 | Mountain Car Solver: cost-to-go surface plot |
 | 24 | Average Reward vs Discounted formulations |
 
-#### Section 9 — Off-Policy with Approximation (Chapter 11) — *coming soon*
-
+#### Section 9 — Off-Policy with Approximation (Chapter 11)
 | Page | Topic |
 |------|-------|
 | 25 | Importance Sampling with Function Approximation |
 | 26 | Deadly Triad Demonstration |
 | 27 | Gradient TD Methods (TDC, GTD2) |
 
-#### Section 10 — Eligibility Traces (Chapter 12) — *coming soon*
-
+#### Section 10 — Eligibility Traces (Chapter 12)
 | Page | Topic |
 |------|-------|
 | 28 | λ-return and TD(λ) |
 | 29 | SARSA(λ) on Cliff Walking |
 | 30 | Unifying n-step and Traces |
 
-#### Section 11 — Policy Gradient Methods (Chapter 13) — *coming soon*
-
+#### Section 11 — Policy Gradient Methods (Chapter 13)
 | Page | Topic |
 |------|-------|
 | 31 | REINFORCE on CartPole |
@@ -154,16 +149,14 @@ The app opens at `http://localhost:8501`.
 | 33 | Actor-Critic |
 | 34 | PPO/TRPO Conceptual |
 
-#### Section 12 — Applications & Case Studies (Chapter 16) — *coming soon*
-
+#### Section 12 — Applications & Case Studies (Chapter 16)
 | Page | Topic |
 |------|-------|
 | 35 | TD-Gammon & Game Playing |
 | 36 | Real-World RL Case Studies |
 | 37 | AlphaGo Architecture |
 
-#### Section 13 — Advanced Topics & Frontiers (Chapter 17) — *coming soon*
-
+#### Section 13 — Advanced Topics & Frontiers (Chapter 17)
 | Page | Topic |
 |------|-------|
 | 38 | Hierarchical RL & Options |
@@ -201,11 +194,19 @@ sections/
   page18_prioritized.py
   bridge_a_value_approx.py    # Neural Networks Bridge
   bridge_b_semi_gradient.py
+  page19_gradient_mc_td.py    # Section 7 — Function Approximation: Prediction
+  ...
+  page31_reinforce.py         # Section 11 — Policy Gradient Methods
+  ...
+  page40_multiagent_frontiers.py  # Section 13 — Advanced Topics & Frontiers
   page_summary.py             # Accumulated concept notes
 utils/
   gridworld.py                # Shared GridWorld + cached DP solvers
   blackjack.py                # Blackjack environment
   random_walk.py              # Random Walk environment
+  random_walk_1000.py         # 1000-state Random Walk (function approximation)
+  tile_coding.py              # Tile coding features (Mountain Car)
+  feature_bases.py            # Polynomial, Fourier, RBF feature bases
 ```
 
 **Caching pattern:** every expensive simulation function is decorated with `@st.cache_data`
